@@ -1,4 +1,5 @@
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gtd/app.dart';
 import 'package:gtd/data/database.dart';
 import 'package:gtd/providers.dart';
+import 'package:gtd/services/time_zone_service.dart';
 
 /// End-to-end style widget tests: the real app, real widgets, real drift SQL
 /// running against an in-memory database.
@@ -20,14 +22,18 @@ void main() {
     await db.close();
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  Future<void> pumpApp(WidgetTester tester, {TimeZoneService? timeZone}) async {
     tester.view.physicalSize = const Size(1400, 2200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [databaseProvider.overrideWithValue(db)],
+        overrides: [
+          databaseProvider.overrideWithValue(db),
+          if (timeZone != null)
+            timeZoneServiceProvider.overrideWithValue(timeZone),
+        ],
         child: const GtdApp(),
       ),
     );
@@ -456,6 +462,92 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('calendar sync mirrors events into a device calendar', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+
+    const channel = MethodChannel('gtd/calendar');
+    final inserted = <Map<String, Object?>>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      switch (call.method) {
+        case 'hasPermission':
+        case 'requestPermission':
+          return true;
+        case 'listCalendars':
+          return [
+            {
+              'id': 5,
+              'name': 'Test calendar',
+              'account': 'tester@example.com',
+              'isWritable': true,
+              'isPrimary': true,
+            },
+          ];
+        case 'insertEvent':
+          inserted.add((call.arguments as Map).cast<String, Object?>());
+          return 1000 + inserted.length;
+        case 'updateEvent':
+        case 'deleteEvent':
+          return true;
+      }
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+
+    await pumpApp(tester, timeZone: const _FixedTimeZone());
+    await db.eventDao.createEvent(
+      EventsCompanion.insert(
+        title: 'Team sync',
+        startsAt: DateTime(2026, 11, 3, 9),
+        endsAt: DateTime(2026, 11, 3, 9, 30),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    // Pick the device calendar from the list coming from the channel.
+    await tester.tap(find.text('Device calendar'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Test calendar').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Test calendar'), findsOneWidget);
+
+    await tester.tap(find.text('Sync now'));
+    await tester.pumpAndSettle();
+
+    expect(inserted, hasLength(1));
+    expect(inserted.single['title'], 'Team sync');
+    expect(inserted.single['calendarId'], 5);
+    expect(find.textContaining('Calendar synced'), findsOneWidget);
+
+    debugDefaultTargetPlatformOverride = null;
+    await disposeApp(tester);
+  });
+
+  testWidgets('calendar sync is disabled where the platform cannot store it', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.linux;
+
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('CALENDAR SYNC'), findsOneWidget);
+    expect(find.text('Only available on Android'), findsOneWidget);
+    expect(find.text('Sync now'), findsNothing);
+
+    debugDefaultTargetPlatformOverride = null;
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 
@@ -472,4 +564,12 @@ void main() {
     expect(columns.map((c) => c.title), contains('Review'));
     await disposeApp(tester);
   });
+}
+
+/// Deterministic timezone for the calendar sync test.
+class _FixedTimeZone extends TimeZoneService {
+  const _FixedTimeZone();
+
+  @override
+  Future<String> localZoneName() async => 'UTC';
 }

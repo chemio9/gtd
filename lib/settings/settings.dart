@@ -50,6 +50,9 @@ class AppSettings {
     this.swipeEnd = SwipeAction.delete,
     this.notificationsEnabled = false,
     this.reminderMinutes = 8 * 60,
+    this.deviceCalendarId,
+    this.deviceCalendarName,
+    this.lastCalendarSyncAt,
   });
 
   /// Swipe from the leading edge (to the right).
@@ -63,20 +66,41 @@ class AppSettings {
   /// Daily reminder, minutes since midnight.
   final int reminderMinutes;
 
+  /// Device calendar the GTD events are mirrored into.
+  final int? deviceCalendarId;
+  final String? deviceCalendarName;
+  final DateTime? lastCalendarSyncAt;
+
   TimeOfDay get reminderTime =>
       TimeOfDay(hour: reminderMinutes ~/ 60, minute: reminderMinutes % 60);
+
+  bool get hasDeviceCalendar => deviceCalendarId != null;
 
   AppSettings copyWith({
     SwipeAction? swipeStart,
     SwipeAction? swipeEnd,
     bool? notificationsEnabled,
     int? reminderMinutes,
+    int? deviceCalendarId,
+    String? deviceCalendarName,
+    DateTime? lastCalendarSyncAt,
+    bool clearDeviceCalendar = false,
+    bool clearLastSync = false,
   }) {
     return AppSettings(
       swipeStart: swipeStart ?? this.swipeStart,
       swipeEnd: swipeEnd ?? this.swipeEnd,
       notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
       reminderMinutes: reminderMinutes ?? this.reminderMinutes,
+      deviceCalendarId: clearDeviceCalendar
+          ? null
+          : deviceCalendarId ?? this.deviceCalendarId,
+      deviceCalendarName: clearDeviceCalendar
+          ? null
+          : deviceCalendarName ?? this.deviceCalendarName,
+      lastCalendarSyncAt: clearLastSync
+          ? null
+          : lastCalendarSyncAt ?? this.lastCalendarSyncAt,
     );
   }
 
@@ -85,6 +109,9 @@ class AppSettings {
     'swipeEnd': swipeEnd.name,
     'notificationsEnabled': notificationsEnabled,
     'reminderMinutes': reminderMinutes,
+    'deviceCalendarId': deviceCalendarId,
+    'deviceCalendarName': deviceCalendarName,
+    'lastCalendarSyncAt': lastCalendarSyncAt?.toIso8601String(),
   };
 
   factory AppSettings.fromJson(Map<String, dynamic> json) {
@@ -98,6 +125,15 @@ class AppSettings {
       reminderMinutes: json['reminderMinutes'] is num
           ? (json['reminderMinutes'] as num).toInt()
           : defaults.reminderMinutes,
+      deviceCalendarId: json['deviceCalendarId'] is num
+          ? (json['deviceCalendarId'] as num).toInt()
+          : null,
+      deviceCalendarName: json['deviceCalendarName'] is String
+          ? json['deviceCalendarName'] as String
+          : null,
+      lastCalendarSyncAt: json['lastCalendarSyncAt'] is String
+          ? DateTime.tryParse(json['lastCalendarSyncAt'] as String)
+          : null,
     );
   }
 }
@@ -171,6 +207,17 @@ class SettingsController extends Notifier<AppSettings> {
 
   Future<void> setReminderTime(TimeOfDay time) =>
       save(state.copyWith(reminderMinutes: time.hour * 60 + time.minute));
+
+  Future<void> setDeviceCalendar(int? id, String? name) => save(
+    state.copyWith(
+      deviceCalendarId: id,
+      deviceCalendarName: name,
+      clearDeviceCalendar: id == null,
+    ),
+  );
+
+  Future<void> markCalendarSynced(DateTime at) =>
+      save(state.copyWith(lastCalendarSyncAt: at));
 }
 
 final settingsProvider = NotifierProvider<SettingsController, AppSettings>(

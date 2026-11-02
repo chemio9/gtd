@@ -8,7 +8,10 @@ import 'package:intl/intl.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/date_x.dart';
+import '../../data/calendar_sync.dart';
 import '../../providers.dart';
+import '../../services/device_calendar_service.dart';
+import '../../services/time_zone_service.dart';
 import '../../services/notification_service.dart';
 import '../../settings/settings.dart';
 
@@ -80,6 +83,9 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _pickReminderTime(context, ref, settings.reminderTime),
           ),
           const Divider(height: 24),
+          const _SectionHeader('Calendar sync'),
+          ..._calendarSyncSection(context, ref, settings, notifier),
+          const Divider(height: 24),
           const _SectionHeader('Backup'),
           ListTile(
             leading: const Icon(Icons.upload_file_outlined),
@@ -116,6 +122,207 @@ class SettingsPage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _calendarSyncSection(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+    SettingsController notifier,
+  ) {
+    final service = ref.read(deviceCalendarServiceProvider);
+    if (!service.isSupported) {
+      return const [
+        ListTile(
+          enabled: false,
+          leading: Icon(Icons.calendar_month_outlined),
+          title: Text('Device calendar'),
+          subtitle: Text('Only available on Android'),
+        ),
+      ];
+    }
+
+    final lastSync = settings.lastCalendarSyncAt;
+    return [
+      ListTile(
+        leading: const Icon(Icons.calendar_month_outlined),
+        title: const Text('Device calendar'),
+        subtitle: Text(
+          settings.deviceCalendarName ?? 'Mirror events into a device calendar',
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () => _pickDeviceCalendar(context, ref, notifier),
+      ),
+      ListTile(
+        enabled: settings.hasDeviceCalendar,
+        leading: const Icon(Icons.sync),
+        title: const Text('Sync now'),
+        subtitle: Text(
+          lastSync == null
+              ? 'Not synced yet'
+              : 'Last synced ${DateFormat('d MMM, HH:mm').format(lastSync)}',
+        ),
+        onTap: () => _syncCalendar(context, ref, settings, notifier),
+      ),
+      ListTile(
+        enabled: settings.hasDeviceCalendar,
+        leading: const Icon(Icons.playlist_remove),
+        title: const Text('Remove synced events'),
+        subtitle: const Text('Delete the copies this app created'),
+        onTap: () => _unlinkCalendar(context, ref, notifier),
+      ),
+    ];
+  }
+
+  Future<void> _pickDeviceCalendar(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsController notifier,
+  ) async {
+    final service = ref.read(deviceCalendarServiceProvider);
+    try {
+      var granted = await service.hasPermission();
+      if (!granted) granted = await service.requestPermission();
+      if (!granted) {
+        if (context.mounted) _snack(context, 'Calendar permission denied');
+        return;
+      }
+
+      var calendars = (await service.calendars())
+          .where((calendar) => calendar.isWritable)
+          .toList();
+
+      if (calendars.isEmpty) {
+        if (!context.mounted) return;
+        final create = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('No writable calendar'),
+            content: const Text(
+              'This device has no calendar this app can write to. Create a '
+              'local "GTD" calendar?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Create'),
+              ),
+            ],
+          ),
+        );
+        if (create != true) return;
+        final id = await service.createLocalCalendar('GTD');
+        if (id == null) {
+          if (context.mounted) _snack(context, 'Could not create a calendar');
+          return;
+        }
+        calendars = (await service.calendars())
+            .where((calendar) => calendar.isWritable)
+            .toList();
+      }
+
+      if (!context.mounted) return;
+      final selected = await showModalBottomSheet<DeviceCalendarInfo>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final calendar in calendars)
+                ListTile(
+                  leading: Icon(
+                    calendar.id == ref.read(settingsProvider).deviceCalendarId
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                  ),
+                  title: Text(calendar.name),
+                  subtitle: calendar.account.isEmpty
+                      ? null
+                      : Text(calendar.account),
+                  onTap: () => Navigator.pop(context, calendar),
+                ),
+            ],
+          ),
+        ),
+      );
+      if (selected == null) return;
+      await notifier.setDeviceCalendar(selected.id, selected.name);
+    } on Object catch (error) {
+      if (context.mounted) _snack(context, 'Calendar error: $error');
+    }
+  }
+
+  Future<void> _syncCalendar(
+    BuildContext context,
+    WidgetRef ref,
+    AppSettings settings,
+    SettingsController notifier,
+  ) async {
+    final calendarId = settings.deviceCalendarId;
+    if (calendarId == null) return;
+
+    final service = ref.read(deviceCalendarServiceProvider);
+    try {
+      var granted = await service.hasPermission();
+      if (!granted) granted = await service.requestPermission();
+      if (!granted) {
+        if (context.mounted) _snack(context, 'Calendar permission denied');
+        return;
+      }
+
+      final timeZone = await ref
+          .read(timeZoneServiceProvider)
+          .localZoneName();
+
+      final result = await ref
+          .read(calendarSyncServiceProvider)
+          .sync(calendarId: calendarId, timeZone: timeZone);
+      await notifier.markCalendarSynced(DateTime.now());
+      if (context.mounted) _snack(context, 'Calendar synced: ${result.summary}');
+    } on Object catch (error) {
+      if (context.mounted) _snack(context, 'Sync failed: $error');
+    }
+  }
+
+  Future<void> _unlinkCalendar(
+    BuildContext context,
+    WidgetRef ref,
+    SettingsController notifier,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove synced events?'),
+        content: const Text(
+          'The copies in your device calendar are deleted. Your GTD events stay '
+          'in the app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      final removed = await ref.read(calendarSyncServiceProvider).unlinkAll();
+      await notifier.markCalendarSynced(DateTime.now());
+      if (context.mounted) _snack(context, 'Removed $removed event(s)');
+    } on Object catch (error) {
+      if (context.mounted) _snack(context, 'Could not remove events: $error');
+    }
   }
 
   Future<void> _toggleNotifications(

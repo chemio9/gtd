@@ -24,7 +24,8 @@ app works offline and never sends data anywhere.
   daily-weekly-monthly recurrence, plus the tasks due on the selected day.
 - **Settings** — configurable swipe actions (complete / today / tomorrow /
   delete, per direction), an optional daily reminder notification, JSON
-  export & import, app version and the open-source license page.
+  export & import, Android device-calendar sync, app version and the
+  open-source license page.
 - Tasks and cards are the *same entity*: a task created in the todo list shows
   up on the board and vice versa.
 
@@ -40,6 +41,7 @@ app works offline and never sends data anywhere.
 | Preferences    | `shared_preferences` (single JSON key)      |
 | Notifications  | `flutter_local_notifications` + `timezone`  |
 | Files          | `file_picker` (import + save dialog)        |
+| Calendar sync  | Android `CalendarContract` via MethodChannel |
 | Version        | `package_info_plus`                         |
 | Dates          | `intl`                                      |
 
@@ -55,11 +57,15 @@ lib/
 │   ├── quick_parse.dart          # "buy milk tomorrow 9am" -> title + due date
 │   └── recurrence.dart           # event occurrence expansion (pure functions)
 ├── settings/settings.dart        # AppSettings, swipe actions, store + notifier
-├── services/notification_service.dart  # daily reminder wrapper
+├── services/
+│   ├── notification_service.dart      # daily reminder wrapper
+│   ├── device_calendar_service.dart   # MethodChannel `gtd/calendar`
+│   └── time_zone_service.dart         # IANA zone lookup with fallback
 ├── data/
 │   ├── tables.dart               # drift table definitions + enums
 │   ├── database.dart             # AppDatabase + seed + migrations
 │   ├── backup.dart               # JSON export / import of every table
+│   ├── calendar_sync.dart        # event -> device calendar sync + RRULE
 │   └── daos/
 │       ├── board_dao.dart        # boards, columns, column reordering
 │       ├── task_dao.dart         # tasks, completion, cross-column moves
@@ -149,7 +155,23 @@ Reached from the gear icon in any tab.
 - **Backup** — `BackupService.export()` serialises every table to JSON with the
   original row ids, so task → column → board links survive an import.
   Imports validate `app`/`version`, then replace the database in a transaction.
+- **Calendar sync** (Android only) — pick a device calendar (or create a local
+  `GTD` one) and mirror every event, recurring series included
+  (`RRULE` + `DURATION`). `CalendarSyncService` keeps a `eventId -> deviceEventId`
+  map so repeat syncs update instead of duplicating, and deletes device copies
+  whose app event is gone. "Remove synced events" deletes only the copies this
+  app created.
 - **About** — version from `package_info_plus` and Flutter's `LicensePage`.
+
+### Calendar sync
+
+`android/app/src/main/kotlin/.../CalendarSyncChannel.kt` owns the native side:
+permissions (`READ_CALENDAR`/`WRITE_CALENDAR`), calendar listing, local calendar
+creation and `CalendarContract.Events` insert/update/delete (recurring events
+use `RRULE` plus a `DURATION`, all-day events use UTC midnight with an
+exclusive end). The Dart service is a thin channel wrapper; all bookkeeping
+lives in `data/calendar_sync.dart`, which is why the sync logic is testable
+without a device.
 
 ## Running
 
@@ -179,6 +201,10 @@ fvm flutter test
 - `test/settings_test.dart` — settings JSON and store persistence.
 - `test/backup_test.dart` — export/import round trip, replacement and rejects
   invalid files.
+- `test/calendar_sync_test.dart` — create/update/delete behaviour, mapping
+  persistence, RRULE generation.
+- `test/device_calendar_service_test.dart` — the `gtd/calendar` MethodChannel
+  contract (payload shape, all-day conversion, parsing) with a mock channel.
 - `test/recurrence_test.dart` — occurrence expansion for all recurrence modes.
 - `test/widget_test.dart` — `KanbanBoardView` rendering/callbacks.
 - `test/app_flow_test.dart` — the real app against an in-memory drift database:

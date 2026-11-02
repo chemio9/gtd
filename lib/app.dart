@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'data/calendar_sync.dart';
 import 'settings/settings.dart';
 import 'ui/board/board_page.dart';
 import 'ui/calendar/calendar_page.dart';
@@ -95,11 +96,16 @@ class _HomeShellState extends State<HomeShell> {
 ///
 /// [settingsStore] is overridden with the SharedPreferences-backed store in
 /// `main()`; tests keep the in-memory default.
-Widget buildApp({SettingsStore? settingsStore}) {
+Widget buildApp({
+  SettingsStore? settingsStore,
+  SyncMappingStore? syncMappingStore,
+}) {
   return ProviderScope(
     overrides: [
       if (settingsStore != null)
         settingsStoreProvider.overrideWithValue(settingsStore),
+      if (syncMappingStore != null)
+        syncMappingStoreProvider.overrideWithValue(syncMappingStore),
     ],
     child: const GtdApp(),
   );
