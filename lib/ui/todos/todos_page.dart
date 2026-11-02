@@ -13,6 +13,7 @@ import '../../providers.dart';
 import '../search/search_button.dart';
 import '../settings/settings_button.dart';
 import '../tasks/quick_add_bar.dart';
+import '../tasks/subtask_tree.dart';
 import '../tasks/task_card.dart';
 import '../tasks/task_editor_sheet.dart';
 
@@ -59,6 +60,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
     final linkedEvents = ref.watch(linkedEventsByTaskProvider);
     final tagsByTask = ref.watch(taskTagsProvider);
     final subtaskProgress = ref.watch(subtaskProgressProvider);
+    final subtasksByTask = ref.watch(subtasksByTaskProvider);
     final filterNotifier = ref.read(todoFilterProvider.notifier);
     final board = ref.watch(activeBoardProvider);
     final isLoading = ref.watch(allTasksProvider).isLoading;
@@ -162,7 +164,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                           isOverdue: entry.key == TodoGroup.overdue,
                           count: entry.value.length,
                         ),
-                        for (final task in entry.value)
+                        for (final task in entry.value) ...[
                           TaskTile(
                             task: task,
                             tags: tagsByTask[task.id] ?? const [],
@@ -184,6 +186,10 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                                     task: task,
                                   ),
                           ),
+                          for (final subtask
+                              in subtasksByTask[task.id] ?? const <Subtask>[])
+                            SubtaskTreeRow(subtask: subtask),
+                        ],
                       ],
                     ],
                   ),

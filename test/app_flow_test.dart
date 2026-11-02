@@ -837,6 +837,75 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('subtasks render inline under their task like a tree', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final outline = await db.subtaskDao.add(taskId: taskId, title: 'Outline');
+    await db.subtaskDao.add(taskId: taskId, title: 'Slides');
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+
+    // Visible without opening the task sheet.
+    expect(find.text('Outline'), findsOneWidget);
+    expect(find.text('Slides'), findsOneWidget);
+
+    await tester.tap(find.byKey(ValueKey('subtask-checkbox-$outline')));
+    await tester.pumpAndSettle();
+
+    final subtasks = await db.select(db.subtasks).get();
+    expect(subtasks.firstWhere((s) => s.id == outline).isDone, isTrue);
+    expect(
+      tester.widget<Text>(find.text('Outline')).style?.decoration,
+      TextDecoration.lineThrough,
+    );
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('task editor completes via a checkbox, not a switch', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Call the plumber',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.tap(find.text('Call the plumber').last);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Switch), findsNothing);
+    expect(find.text('Completed'), findsNothing);
+
+    final checkbox = find.byKey(const ValueKey('task-completed-checkbox'));
+    expect(checkbox, findsOneWidget);
+    await tester.tap(checkbox);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final saved = await db.taskDao.taskById(taskId);
+    expect(saved!.completedAt, isNotNull);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

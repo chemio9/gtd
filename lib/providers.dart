@@ -170,6 +170,20 @@ final subtasksForTaskProvider = StreamProvider.family<List<Subtask>, int>((
   return ref.watch(subtaskDaoProvider).watchForTask(taskId);
 });
 
+/// `taskId -> subtasks`, ordered, used to render the tree in the list.
+final subtasksByTaskProvider = Provider<Map<int, List<Subtask>>>((ref) {
+  final subtasks = [...?ref.watch(allSubtasksProvider).value];
+  subtasks.sort((a, b) {
+    final byPosition = a.position.compareTo(b.position);
+    return byPosition != 0 ? byPosition : a.id.compareTo(b.id);
+  });
+  final byTask = <int, List<Subtask>>{};
+  for (final subtask in subtasks) {
+    byTask.putIfAbsent(subtask.taskId, () => <Subtask>[]).add(subtask);
+  }
+  return byTask;
+});
+
 /// `taskId -> (done, total)` used to badge task rows.
 final subtaskProgressProvider = Provider<Map<int, ({int done, int total})>>((
   ref,

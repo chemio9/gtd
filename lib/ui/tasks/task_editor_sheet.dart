@@ -278,15 +278,36 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _title,
-              autofocus: !_isEditing,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                labelText: context.l10n.title,
-                border: const OutlineInputBorder(),
-              ),
-              onSubmitted: (_) => _save(),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (_isEditing)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: Tooltip(
+                      message: context.l10n.taskCompleted,
+                      child: Checkbox(
+                        key: const ValueKey('task-completed-checkbox'),
+                        value: _completed,
+                        shape: const CircleBorder(),
+                        onChanged: (value) =>
+                            setState(() => _completed = value ?? false),
+                      ),
+                    ),
+                  ),
+                Expanded(
+                  child: TextField(
+                    controller: _title,
+                    autofocus: !_isEditing,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: context.l10n.title,
+                      border: const OutlineInputBorder(),
+                    ),
+                    onSubmitted: (_) => _save(),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             TextField(
@@ -428,12 +449,6 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               ),
             if (_isEditing) ...[
               const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(context.l10n.taskCompleted),
-                value: _completed,
-                onChanged: (value) => setState(() => _completed = value),
-              ),
               _LinkedEventsSection(
                 taskId: widget.task!.id,
                 onOpenEvent: _openEventEditor,
