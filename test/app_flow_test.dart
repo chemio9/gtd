@@ -242,6 +242,60 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('quick add highlights recognised dates and shows a due badge', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final input = find.byType(TextField);
+    await tester.enterText(input, 'conference 2026-11-03 9:45');
+    await tester.pumpAndSettle();
+
+    // The recognised tokens are painted with a background colour by the
+    // controller that backs the input.
+    final field = tester.widget<TextField>(input);
+    final span = field.controller!.buildTextSpan(
+      context: tester.element(input),
+      style: const TextStyle(),
+      withComposing: false,
+    );
+    final highlighted = <String>[];
+    span.visitChildren((child) {
+      if (child is TextSpan && child.style?.backgroundColor != null) {
+        highlighted.add(child.text ?? '');
+      }
+      return true;
+    });
+    expect(highlighted, ['2026-11-03 9:45']);
+
+    // ...and confirmed by the due badge under the field.
+    expect(find.textContaining('Due '), findsOneWidget);
+    expect(find.textContaining('09:45'), findsWidgets);
+
+    // Clearing the badge strips the recognised tokens from the text.
+    await tester.tap(find.byTooltip('Clear recognised date'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      'conference',
+    );
+    expect(find.byTooltip('Clear recognised date'), findsNothing);
+
+    // Submitting keeps the exact parsed date.
+    await tester.enterText(input, 'conference 2026-11-03 9:45');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final saved = await task('conference');
+    expect(saved, isNotNull);
+    expect(saved!.dueDate, DateTime(2026, 11, 3, 9, 45));
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

@@ -14,7 +14,10 @@ app works offline and never sends data anywhere.
   Adding is a single inline row (Microsoft To Do style): Enter saves, the field
   clears and stays focused, so a whole list can be typed in a row. The line is
   parsed for dates — `buy milk tomorrow`, `gym fri 9am`, `rent +3d`, `plan
-  next week`. Press <kbd>Esc</kbd> or the ✕ to stop adding.
+  next week`, `a conference 2026-11-03 9:45`. Recognised tokens are
+  highlighted in the field and confirmed by a `Due …` badge (tap it to change
+  the date, ✕ to drop the recognised date). Press <kbd>Esc</kbd> or the ✕ to
+  stop adding.
 - **Calendar** — month / 2-week / week views, day agenda, events with
   daily-weekly-monthly recurrence, plus the tasks due on the selected day.
 - Tasks and cards are the *same entity*: a task created in the todo list shows
@@ -102,6 +105,15 @@ a 120 ms long press so scrolling still works on touch devices.
 
 `KanbanStyle` exposes column width/spacing/padding, card and column radius and
 the edge auto-scroll threshold/speed.
+
+### Quick add parsing
+
+`parseQuickAdd()` returns `title`, `dueDate` and the character `spans` of every
+recognised token. Tokens are blanked with spaces instead of being deleted, so
+the reported offsets always point into the original input and the text field can
+highlight them. Absolute dates (`2026-11-03`, `2026/11/3`, `2026-11-03T09:45`)
+are validated, so `2026-02-31` stays part of the title instead of producing an
+invalid date.
 
 ### Due dates are day-first
 

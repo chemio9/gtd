@@ -11,7 +11,10 @@ import '../../providers.dart';
 ///
 /// One line in, one task out: pressing Enter saves the task, clears the field
 /// and keeps the keyboard/focus alive so a whole list can be typed in a row.
-/// The text is parsed for dates (`tomorrow`, `fri`, `at 9pm`, `+3d`).
+///
+/// While typing, recognised tokens (`tomorrow`, `2026-11-03 9:45`, `fri 9am`,
+/// `+3d`) are highlighted in the field and the parsed due date is shown in a
+/// chip underneath, so the user sees exactly what will be saved.
 class QuickAddBar extends ConsumerStatefulWidget {
   const QuickAddBar({
     super.key,
@@ -45,13 +48,14 @@ class QuickAddBar extends ConsumerStatefulWidget {
 }
 
 class QuickAddBarState extends ConsumerState<QuickAddBar> {
-  final TextEditingController _controller = TextEditingController();
+  final _QuickAddController _controller = _QuickAddController();
   final FocusNode _focusNode = FocusNode();
 
   /// `null` means "use [QuickAddBar.defaultDueDate]".
   DateTime? _dueOverride;
   bool _hasDueOverride = false;
   bool _saving = false;
+  late QuickAddResult _parsed = parseQuickAdd('');
 
   DateTime? get _dueDate =>
       _hasDueOverride ? _dueOverride : widget.defaultDueDate;
@@ -59,6 +63,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
   @override
   void initState() {
     super.initState();
+    _controller.addListener(_onTextChanged);
     if (widget.expanded && widget.autofocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) => focus());
     }
@@ -74,11 +79,16 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
       _controller.clear();
       _focusNode.unfocus();
     }
+    if (widget.defaultDueDate != oldWidget.defaultDueDate) {
+      _onTextChanged();
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller
+      ..removeListener(_onTextChanged)
+      ..dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -86,6 +96,46 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
   /// Requests focus and reveals the editable row.
   void focus() {
     if (!widget.expanded) widget.onExpand();
+    _focusNode.requestFocus();
+  }
+
+  void _onTextChanged() {
+    final parsed = parseQuickAdd(_controller.text, fallbackDue: _dueDate);
+    _controller.setHighlight([
+      for (final (start, end) in parsed.spans)
+        TextRange(start: start, end: end),
+    ]);
+    if (!mounted) {
+      _parsed = parsed;
+      return;
+    }
+    setState(() => _parsed = parsed);
+  }
+
+  /// Removes the recognised tokens from the field (the chip's "clear" action).
+  void _clearRecognisedTokens() {
+    var text = _controller.text;
+    final spans = [..._parsed.spans]
+      ..sort((a, b) => b.$1.compareTo(a.$1));
+    for (final (start, end) in spans) {
+      if (end <= text.length) text = text.replaceRange(start, end, '');
+    }
+    text = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+  }
+
+  void _resetDue() {
+    if (_parsed.hasTokens) {
+      _clearRecognisedTokens();
+    } else {
+      setState(() {
+        _hasDueOverride = true;
+        _dueOverride = null;
+      });
+    }
     _focusNode.requestFocus();
   }
 
@@ -165,6 +215,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final compact = MediaQuery.sizeOf(context).width < 420;
+    final due = _parsed.dueDate;
 
     if (!widget.expanded) {
       return Padding(
@@ -189,9 +240,9 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                       ),
                     ),
                   ),
-                  if (_dueDate != null)
+                  if (due != null)
                     _DueChip(
-                      due: _dueDate!,
+                      due: due,
                       compact: compact,
                       onTap: () => focus(),
                       onMenu: _openDueMenu,
@@ -211,63 +262,82 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(10, 4, 6, 4),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, size: 20, color: scheme.primary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Focus(
-                  onKeyEvent: (node, event) {
-                    if (event is KeyDownEvent &&
-                        event.logicalKey == LogicalKeyboardKey.escape) {
+              Row(
+                children: [
+                  Icon(Icons.add, size: 20, color: scheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Focus(
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent &&
+                            event.logicalKey == LogicalKeyboardKey.escape) {
+                          _controller.clear();
+                          widget.onCollapse();
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          hintText: 'Add a task',
+                          border: InputBorder.none,
+                          isDense: true,
+                        ),
+                        onSubmitted: (_) => _submit(),
+                      ),
+                    ),
+                  ),
+                  if (!_parsed.hasTokens)
+                    _DueChip(
+                      due: due,
+                      compact: compact,
+                      onTap: _openDueMenu,
+                      onMenu: _openDueMenu,
+                    ),
+                  IconButton(
+                    tooltip: 'Add task',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: _saving ? null : _submit,
+                    icon: _saving
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.arrow_upward),
+                  ),
+                  IconButton(
+                    tooltip: 'Done adding',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
                       _controller.clear();
                       widget.onCollapse();
-                      return KeyEventResult.handled;
-                    }
-                    return KeyEventResult.ignored;
-                  },
-                  child: TextField(
-                    controller: _controller,
-                    focusNode: _focusNode,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      hintText: 'Add a task',
-                      border: InputBorder.none,
-                      isDense: true,
-                    ),
-                    onSubmitted: (_) => _submit(),
+                    },
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              if (_parsed.hasTokens && due != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(26, 0, 0, 6),
+                  child: Row(
+                    children: [
+                      _ParsedDueBadge(
+                        label: 'Due ${formatDueLabel(due)}',
+                        onTap: _openDueMenu,
+                        onClear: _resetDue,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              _DueChip(
-                due: _dueDate,
-                compact: compact,
-                onTap: _openDueMenu,
-                onMenu: _openDueMenu,
-              ),
-              IconButton(
-                tooltip: 'Add task',
-                visualDensity: VisualDensity.compact,
-                onPressed: _saving ? null : _submit,
-                icon: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.arrow_upward),
-              ),
-              IconButton(
-                tooltip: 'Done adding',
-                visualDensity: VisualDensity.compact,
-                onPressed: () {
-                  _controller.clear();
-                  widget.onCollapse();
-                },
-                icon: const Icon(Icons.close),
-              ),
             ],
           ),
         ),
@@ -321,6 +391,132 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
   }
 }
 
+/// Text field content where the recognised date/time tokens are highlighted.
+class _QuickAddController extends TextEditingController {
+  List<TextRange> _highlight = const [];
+
+  void setHighlight(List<TextRange> ranges) {
+    if (_sameRanges(ranges, _highlight)) return;
+    _highlight = ranges;
+    notifyListeners();
+  }
+
+  static bool _sameRanges(List<TextRange> a, List<TextRange> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i].start != b[i].start || a[i].end != b[i].end) return false;
+    }
+    return true;
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    if (_highlight.isEmpty || text.isEmpty) {
+      return super.buildTextSpan(
+        context: context,
+        style: style,
+        withComposing: withComposing,
+      );
+    }
+
+    final scheme = Theme.of(context).colorScheme;
+    final ranges = [..._highlight]
+      ..removeWhere((r) => r.start >= text.length)
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    final children = <InlineSpan>[];
+    var cursor = 0;
+    for (final range in ranges) {
+      final start = range.start.clamp(cursor, text.length);
+      final end = range.end.clamp(start, text.length);
+      if (end <= start) continue;
+      if (start > cursor) {
+        children.add(TextSpan(text: text.substring(cursor, start)));
+      }
+      children.add(
+        TextSpan(
+          text: text.substring(start, end),
+          style: TextStyle(
+            color: scheme.onPrimaryContainer,
+            backgroundColor: scheme.primaryContainer,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+      cursor = end;
+    }
+    if (cursor < text.length) {
+      children.add(TextSpan(text: text.substring(cursor)));
+    }
+
+    return TextSpan(style: style, children: children);
+  }
+}
+
+/// Chip under the input that confirms the recognised due date.
+class _ParsedDueBadge extends StatelessWidget {
+  const _ParsedDueBadge({
+    required this.label,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Material(
+      color: scheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 8, right: 2, top: 2, bottom: 2),
+          child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 13,
+              color: scheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: scheme.onSecondaryContainer,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+          IconButton(
+            tooltip: 'Clear recognised date',
+            visualDensity: VisualDensity.compact,
+            iconSize: 14,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            padding: EdgeInsets.zero,
+            onPressed: onClear,
+            icon: const Icon(Icons.close),
+            color: scheme.onSecondaryContainer,
+          ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _DueChip extends StatelessWidget {
   const _DueChip({
     required this.due,
@@ -339,6 +535,12 @@ class _DueChip extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final label = due == null ? 'No date' : friendlyDay(due!);
+    final background = due == null
+        ? scheme.surfaceContainerHighest
+        : scheme.secondaryContainer;
+    final foreground = due == null
+        ? scheme.onSurfaceVariant
+        : scheme.onSecondaryContainer;
 
     return Tooltip(
       message: 'Set due date',
@@ -352,9 +554,7 @@ class _DueChip extends StatelessWidget {
             vertical: 6,
           ),
           decoration: BoxDecoration(
-            color: due == null
-                ? scheme.surfaceContainerHighest
-                : scheme.primaryContainer,
+            color: background,
             borderRadius: BorderRadius.circular(999),
           ),
           child: Row(
@@ -363,18 +563,14 @@ class _DueChip extends StatelessWidget {
               Icon(
                 due == null ? Icons.event_busy_outlined : Icons.event_outlined,
                 size: 14,
-                color: due == null
-                    ? scheme.onSurfaceVariant
-                    : scheme.onPrimaryContainer,
+                color: foreground,
               ),
               if (!compact) ...[
                 const SizedBox(width: 4),
                 Text(
                   label,
                   style: theme.textTheme.labelSmall?.copyWith(
-                    color: due == null
-                        ? scheme.onSurfaceVariant
-                        : scheme.onPrimaryContainer,
+                    color: foreground,
                   ),
                 ),
               ],

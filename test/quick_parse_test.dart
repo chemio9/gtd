@@ -71,6 +71,77 @@ void main() {
       expect(result.dueDate, DateTime(2026, 1, 13));
     });
 
+    group('absolute dates', () {
+      test('parses ISO dates and the time after them', () {
+        final result = parse('a conference 2026-11-03 9:45');
+        expect(result.title, 'a conference');
+        expect(result.dueDate, DateTime(2026, 11, 3, 9, 45));
+        expect(result.matchedDateToken, isTrue);
+        expect(result.matchedTimeToken, isTrue);
+      });
+
+      test('parses slash separated dates and "at" times', () {
+        final result = parse('conference 2026/11/3 at 14:30');
+        expect(result.title, 'conference');
+        expect(result.dueDate, DateTime(2026, 11, 3, 14, 30));
+      });
+
+      test('parses ISO date-time with a T separator', () {
+        final result = parse('conference 2026-11-03T09:45');
+        expect(result.title, 'conference');
+        expect(result.dueDate, DateTime(2026, 11, 3, 9, 45));
+      });
+
+      test('date only stays date only', () {
+        final result = parse('conference 2026-11-03');
+        expect(result.title, 'conference');
+        expect(result.dueDate, DateTime(2026, 11, 3));
+        expect(hasTimeOfDay(result.dueDate!), isFalse);
+      });
+
+      test('impossible dates are left in the title', () {
+        final result = parse('party 2026-02-31');
+        expect(result.title, 'party 2026-02-31');
+        expect(result.dueDate, isNull);
+      });
+
+      test('invalid clock values are not treated as time', () {
+        final result = parse('lunch at 25:99');
+        expect(result.dueDate, isNull);
+        expect(result.title, 'lunch at 25:99');
+      });
+
+      test('a lone date yields an empty title', () {
+        expect(parse('2026-11-03').title, isEmpty);
+        expect(parse('2026-11-03').dueDate, DateTime(2026, 11, 3));
+      });
+    });
+
+    group('highlight spans', () {
+      test('report the exact token ranges of the original input', () {
+        const input = 'a conference 2026-11-03 9:45';
+        final result = parse(input);
+        expect(
+          result.spans.map((s) => input.substring(s.$1, s.$2)),
+          ['2026-11-03 9:45'],
+        );
+      });
+
+      test('report separate day and time tokens', () {
+        const input = 'standup tomorrow 9:45am';
+        final result = parse(input);
+        expect(
+          result.spans.map((s) => input.substring(s.$1, s.$2)),
+          ['tomorrow', '9:45am'],
+        );
+      });
+
+      test('plain text has no spans', () {
+        expect(parse('buy milk').spans, isEmpty);
+        expect(parse('buy milk').hasTokens, isFalse);
+      });
+    });
+
     test('a line with only a date token yields an empty title', () {
       final result = parse('tomorrow');
       expect(result.title, isEmpty);
