@@ -2,7 +2,8 @@
 
 A local-first Flutter app that combines a kanban board, a todo list and a
 calendar in one place. Everything is stored on-device in SQLite (drift), so the
-app works offline and never sends data anywhere.
+app works offline and never sends data anywhere. UI available in English and
+Simplified Chinese.
 
 ## Features
 
@@ -28,6 +29,14 @@ app works offline and never sends data anywhere.
   delete, per direction), an optional daily reminder notification, JSON
   export & import, Android device-calendar sync, app version and the
   open-source license page.
+- **Subtasks & tags** — one level of checkable steps per task with a
+  done/total badge on cards, plus global colour-coded tags shared across
+  boards.
+- **Reminders** — per-task "remind me N minutes before the due time" (5m, 15m,
+  1h, 3h, 1d or at the due time) scheduled as local notifications and kept in
+  sync with the tasks automatically.
+- **Search** — one search field across task titles/notes, subtasks, tags and
+  events, localised and reachable from every tab.
 - Tasks and cards are the *same entity*: a task created in the todo list shows
   up on the board and vice versa.
 
@@ -45,7 +54,7 @@ app works offline and never sends data anywhere.
 | Files          | `file_picker` (import + save dialog)        |
 | Calendar sync  | Android `CalendarContract` via MethodChannel |
 | Version        | `package_info_plus`                         |
-| Dates          | `intl`                                      |
+| Dates          | `intl` + `flutter_localizations` (gen-l10n) |
 
 ## Project layout
 
@@ -54,14 +63,17 @@ lib/
 ├── main.dart                     # bootstrap
 ├── app.dart                      # MaterialApp + 3-tab shell
 ├── providers.dart                # every provider (db, daos, queries, UI state)
+├── l10n/                         # ARB files (en, zh) + generated AppLocalizations
 ├── core/
 │   ├── date_x.dart               # day math + human date formatting
 │   ├── quick_parse.dart          # "buy milk tomorrow 9am" -> title + due date
+│   ├── search.dart               # pure search across tasks/events/subtasks/tags
 │   └── recurrence.dart           # event occurrence expansion (pure functions)
 ├── settings/settings.dart        # AppSettings, swipe actions, store + notifier
 ├── services/
 │   ├── notification_service.dart      # daily reminder wrapper
 │   ├── device_calendar_service.dart   # MethodChannel `gtd/calendar`
+│   ├── task_reminder_scheduler.dart   # task due reminders <-> notifications
 │   └── time_zone_service.dart         # IANA zone lookup with fallback
 ├── data/
 │   ├── tables.dart               # drift table definitions + enums
@@ -94,11 +106,17 @@ tasks(id, board_id, column_id, title, notes, due_date,
       priority(enum), position, completed_at, created_at, updated_at)
 events(id, title, notes, linked_task_id?, starts_at, ends_at, all_day,
        recurrence(none|daily|weekly|monthly), by_weekday, recurrence_until)
+subtasks(id, task_id, title, is_done, position, created_at)
+tags(id, name UNIQUE, color, created_at)
+task_tags(task_id, tag_id)            -- PK(task_id, tag_id)
+-- tasks also carry reminder_minutes_before (nullable)
 ```
 
-Schema version 2 adds `events.linked_task_id` (migration handles v1 databases);
-foreign keys are switched on per connection, so `board → column → task`
-cascades and `task → event` links are set to null when a task is deleted.
+Schema version 4 migrates v1 databases in place: v2 added
+`events.linked_task_id`, v3 `tasks.reminder_minutes_before`, v4 the subtask,
+tag and task-tag tables. Foreign keys are switched on per connection, so
+`board → column → task`, `task → subtask` and the tag links cascade (and
+`task → event` links are set to null when a task is deleted).
 
 Recurring events are **expanded on read**, never duplicated in storage:
 `expandEvent()` produces the occurrences inside the requested window and
@@ -148,6 +166,14 @@ A task's `due_date` at midnight means "this day, no time"; the UI then shows
 `Today` instead of `Today · 00:00`. Adding a time (editor or `9am` in the quick
 add row) is opt-in.
 
+## Localization
+
+`l10n.yaml` + `lib/l10n/app_en.arb` / `app_zh.arb` feed Flutter's `gen-l10n`
+pipeline (run automatically because `generate: true`). UI code uses
+`context.l10n.<key>`; `Intl.defaultLocale` follows the app locale so date
+formatting matches. `test/l10n_test.dart` fails if the two ARB files drift
+apart or a message is empty.
+
 ## Settings
 
 Reached from the gear icon in any tab.
@@ -179,6 +205,15 @@ use `RRULE` plus a `DURATION`, all-day events use UTC midnight with an
 exclusive end). The Dart service is a thin channel wrapper; all bookkeeping
 lives in `data/calendar_sync.dart`, which is why the sync logic is testable
 without a device.
+
+## Reminders
+
+`TaskReminderScheduler` is the only writer of task reminders: on startup and on
+every task/settings change the shell calls `syncAll()`, which cancels the
+pending task reminders and reschedules the ones still ahead (id space 5000+,
+separate `task_reminders` channel). Date-only due dates anchor at 09:00, so
+"3 hours before" still lands somewhere sensible. Everything is behind a
+`TaskReminderGateway` seam, so the logic is unit tested with a fake gateway.
 
 ## Running
 
@@ -213,10 +248,16 @@ fvm flutter test
 - `test/device_calendar_service_test.dart` — the `gtd/calendar` MethodChannel
   contract (payload shape, all-day conversion, parsing) with a mock channel.
 - `test/event_task_link_test.dart` — foreign-key enforcement and cascades, link
-  persistence from both sides, and the v1 → v2 migration on a real database.
+  persistence from both sides, and the v1 → v4 migration on a real database.
+- `test/task_reminder_test.dart` — reminder time maths and the scheduler.
+- `test/subtasks_tags_test.dart` — subtask ordering/deletes, tag idempotency,
+  set replacement, cascades and backup round trip.
+- `test/search_test.dart` — the pure search matcher.
+- `test/l10n_test.dart` — ARB parity (en ↔ zh).
 - `test/recurrence_test.dart` — occurrence expansion for all recurrence modes.
 - `test/widget_test.dart` — `KanbanBoardView` rendering/callbacks.
 - `test/app_flow_test.dart` — the real app against an in-memory drift database:
   create a task, drag a card across columns, complete a todo (moves it to the
-  done column), create a recurring event, add a column, and add three tasks in
-  a row from the quick-add row.
+  done column), create a recurring event, add a column, add three tasks in a
+  row from the quick-add row, link an event to a task, set a reminder, add a
+  subtask and a tag, and search for tasks/events.
