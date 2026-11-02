@@ -143,20 +143,31 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
     final raw = _controller.text;
     if (raw.trim().isEmpty || _saving) return;
 
-    final parsed = parseQuickAdd(raw, fallbackDue: _dueDate);
-    if (parsed.title.isEmpty) {
+    // Pasting a list produces one task per line.
+    final lines = raw
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    final parsedLines = [for (final line in lines) parseQuickAdd(line, fallbackDue: _dueDate)]
+      ..removeWhere((parsed) => parsed.title.isEmpty);
+    if (parsedLines.isEmpty) {
       _controller.clear();
       return;
     }
 
     setState(() => _saving = true);
     final dao = ref.read(taskDaoProvider);
-    final id = await dao.createTask(
-      title: parsed.title,
-      boardId: widget.boardId,
-      dueDate: parsed.dueDate,
-    );
-    final task = await dao.taskById(id);
+    final ids = <int>[];
+    for (final parsed in parsedLines) {
+      ids.add(
+        await dao.createTask(
+          title: parsed.title,
+          boardId: widget.boardId,
+          dueDate: parsed.dueDate,
+        ),
+      );
+    }
     if (!mounted) return;
 
     setState(() {
@@ -172,16 +183,27 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
       ?..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text('Added "${parsed.title}"'),
+          content: Text(
+            ids.length == 1
+                ? 'Added "${parsedLines.single.title}"'
+                : 'Added ${ids.length} tasks',
+          ),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: 'Undo',
-            onPressed: () => dao.deleteTask(id),
+            onPressed: () async {
+              for (final id in ids) {
+                await dao.deleteTask(id);
+              }
+            },
           ),
         ),
       );
 
-    if (task != null) widget.onTaskAdded?.call(task);
+    if (parsedLines.length == 1) {
+      final task = await dao.taskById(ids.single);
+      if (task != null) widget.onTaskAdded?.call(task);
+    }
   }
 
   Future<void> _pickDueDate() async {

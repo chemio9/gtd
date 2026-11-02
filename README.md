@@ -8,7 +8,8 @@ app works offline and never sends data anywhere.
 
 - **Board** — kanban with draggable cards, multiple boards, editable columns,
   "done" columns that complete tasks automatically, edge auto-scroll while
-  dragging.
+  dragging. The column "+" opens an inline card field (same Enter-to-continue
+  flow, same date parsing) instead of a dialog.
 - **Todos** — one flat list of the same tasks, grouped into Overdue / Today /
   Tomorrow / Upcoming / Later / Anytime, with filters and swipe-to-delete.
   Adding is a single inline row (Microsoft To Do style): Enter saves, the field
@@ -17,7 +18,8 @@ app works offline and never sends data anywhere.
   next week`, `a conference 2026-11-03 9:45`. Recognised tokens are
   highlighted in the field and confirmed by a `Due …` badge (tap it to change
   the date, ✕ to drop the recognised date). Press <kbd>Esc</kbd> or the ✕ to
-  stop adding.
+  stop adding. The app bar menu also has **Paste list**: one task per clipboard
+  line, bullets stripped, same date parsing.
 - **Calendar** — month / 2-week / week views, day agenda, events with
   daily-weekly-monthly recurrence, plus the tasks due on the selected day.
 - Tasks and cards are the *same entity*: a task created in the todo list shows
@@ -54,6 +56,7 @@ lib/
 └── ui/
     ├── kanban/kanban_board_view.dart   # reusable drag & drop board
     ├── board/board_page.dart           # board tab
+    ├── board/inline_card_add.dart       # per-column inline card entry
     ├── todos/todos_page.dart           # todo tab
     ├── calendar/calendar_page.dart      # calendar tab
     ├── calendar/event_editor_sheet.dart
@@ -94,6 +97,7 @@ KanbanBoardView<Task>(
   // optional
   onItemTap: ..., onAddItem: ..., onColumnMenu: ...,
   emptyBuilder: ..., dragBuilder: ...,
+  columnTopBuilder: (context, column) => InlineCardAdd(...), // above the cards
   style: KanbanStyle(columnWidth: 300),
 );
 ```

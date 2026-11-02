@@ -337,6 +337,48 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('pasting a list adds one task per line', (tester) async {
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.getData') {
+          return <String, dynamic>{
+            'text':
+                '- call the bank tomorrow\n'
+                '* buy milk\n'
+                'book flight 2026-12-24 18:00',
+          };
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+
+    await tester.tap(find.byTooltip('More'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Paste list'));
+    await tester.pumpAndSettle();
+
+    final tasks = await db.select(db.tasks).get();
+    expect(tasks, hasLength(3));
+    expect(
+      tasks.map((t) => t.title),
+      containsAll(['call the bank', 'buy milk', 'book flight']),
+    );
+    final flight = tasks.firstWhere((t) => t.title == 'book flight');
+    expect(flight.dueDate, DateTime(2026, 12, 24, 18));
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

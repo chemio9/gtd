@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_x.dart';
+import '../../core/quick_parse.dart';
 import '../../providers.dart';
 import '../tasks/quick_add_bar.dart';
 import '../tasks/task_card.dart';
@@ -54,16 +56,41 @@ class _TodosPageState extends ConsumerState<TodosPage> {
       appBar: AppBar(
         title: const Text('Todos'),
         actions: [
-          IconButton(
-            tooltip: 'Detailed task',
-            onPressed: board == null
-                ? null
-                : () => showTaskEditor(
+          PopupMenuButton<String>(
+            tooltip: 'More',
+            onSelected: (value) {
+              if (board == null) return;
+              switch (value) {
+                case 'detailed':
+                  showTaskEditor(
                     context,
                     boardId: board.id,
                     initialDueDate: _defaultDueDate(filter),
-                  ),
-            icon: const Icon(Icons.edit_note),
+                  );
+                case 'paste':
+                  _pasteList(board.id, _defaultDueDate(filter));
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(
+                value: 'detailed',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.edit_note),
+                  title: Text('Detailed task'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'paste',
+                child: ListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.content_paste_go),
+                  title: Text('Paste list'),
+                ),
+              ),
+            ],
           ),
         ],
         bottom: PreferredSize(
@@ -150,6 +177,61 @@ class _TodosPageState extends ConsumerState<TodosPage> {
               child: const Icon(Icons.add),
             ),
     );
+  }
+
+  /// Turns the clipboard into one task per line (`- ` bullets are stripped).
+  Future<void> _pasteList(int boardId, DateTime? defaultDue) async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text ?? '';
+    final lines = text
+        .split(RegExp(r'\r?\n'))
+        .map((line) => line.replaceFirst(RegExp(r'^\s*[-*•]\s+'), '').trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+
+    if (lines.isEmpty) {
+      _snack('Clipboard is empty');
+      return;
+    }
+
+    final dao = ref.read(taskDaoProvider);
+    final ids = <int>[];
+    for (final line in lines) {
+      final parsed = parseQuickAdd(line, fallbackDue: defaultDue);
+      if (parsed.title.isEmpty) continue;
+      ids.add(
+        await dao.createTask(
+          title: parsed.title,
+          boardId: boardId,
+          dueDate: parsed.dueDate,
+        ),
+      );
+    }
+    if (ids.isEmpty || !mounted) return;
+
+    _snack(
+      ids.length == 1 ? 'Added "${lines.first}"' : 'Added ${ids.length} tasks',
+      action: SnackBarAction(
+        label: 'Undo',
+        onPressed: () async {
+          for (final id in ids) {
+            await dao.deleteTask(id);
+          }
+        },
+      ),
+    );
+  }
+
+  void _snack(String message, {SnackBarAction? action}) {
+    ScaffoldMessenger.maybeOf(context)
+      ?..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 3),
+          action: action,
+        ),
+      );
   }
 
   String _filterLabel(TodoFilter filter) => switch (filter) {
