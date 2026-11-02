@@ -726,4 +726,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reminderNotificationTitle => 'Reminder';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get subtaskEdit => 'Edit subtask';
 }

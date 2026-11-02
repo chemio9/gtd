@@ -721,4 +721,10 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get reminderNotificationTitle => '提醒';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get subtaskEdit => '编辑子任务';
 }

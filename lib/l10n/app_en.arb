@@ -440,5 +440,7 @@
   "reminderBefore1h": "1 hour before",
   "reminderBefore3h": "3 hours before",
   "reminderBefore1d": "1 day before",
-  "reminderNotificationTitle": "Reminder"
+  "reminderNotificationTitle": "Reminder",
+  "edit": "Edit",
+  "subtaskEdit": "Edit subtask"
 }

@@ -906,6 +906,109 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('subtasks wrap and keep their own line breaks', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final longTitle =
+        'Line one\nLine two that is quite long and must not be truncated '
+        'because subtasks can hold multi-line notes';
+    await db.subtaskDao.add(taskId: taskId, title: longTitle);
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+
+    final rendered = find.text(longTitle);
+    expect(rendered, findsOneWidget);
+    // No clamping: the row grows instead of ellipsizing.
+    expect(tester.widget<Text>(rendered).maxLines, isNull);
+    expect(tester.widget<Text>(rendered).overflow, isNull);
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('a subtask can be renamed from the task editor', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final subtaskId = await db.subtaskDao.add(taskId: taskId, title: 'Old');
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.tap(find.text('Prepare deck').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Edit').first);
+    await tester.pumpAndSettle();
+
+    final dialogField = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    expect(tester.widget<TextField>(dialogField).controller!.text, 'Old');
+    await tester.enterText(dialogField, 'New\ntitle');
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('Save')),
+    );
+    await tester.pumpAndSettle();
+
+    final subtask = await (db.select(
+      db.subtasks,
+    )..where((t) => t.id.equals(subtaskId))).getSingle();
+    expect(subtask.title, 'New\ntitle');
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('long pressing a subtask row renames it', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final subtaskId = await db.subtaskDao.add(taskId: taskId, title: 'Old');
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.longPress(find.text('Old'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextField),
+      ),
+      'Outline slides',
+    );
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text('Save')),
+    );
+    await tester.pumpAndSettle();
+
+    final subtask = await (db.select(
+      db.subtasks,
+    )..where((t) => t.id.equals(subtaskId))).getSingle();
+    expect(subtask.title, 'Outline slides');
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

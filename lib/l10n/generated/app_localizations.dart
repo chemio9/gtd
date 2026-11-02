@@ -1381,6 +1381,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Reminder'**
   String get reminderNotificationTitle;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @subtaskEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit subtask'**
+  String get subtaskEdit;
 }
 
 class _AppLocalizationsDelegate

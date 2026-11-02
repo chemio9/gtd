@@ -12,6 +12,7 @@ Future<String?> showTextPrompt(
   String? label,
   String? hint,
   String confirmLabel = 'Save',
+  int maxLines = 1,
 }) {
   return showDialog<String>(
     context: context,
@@ -21,6 +22,7 @@ Future<String?> showTextPrompt(
       label: label,
       hint: hint,
       confirmLabel: confirmLabel,
+      maxLines: maxLines,
     ),
   );
 }
@@ -30,6 +32,7 @@ class _TextPromptDialog extends StatefulWidget {
     required this.title,
     required this.label,
     required this.confirmLabel,
+    required this.maxLines,
     this.initialValue,
     this.hint,
   });
@@ -37,6 +40,7 @@ class _TextPromptDialog extends StatefulWidget {
   final String title;
   final String? label;
   final String confirmLabel;
+  final int maxLines;
   final String? initialValue;
   final String? hint;
 
@@ -68,12 +72,20 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
       content: TextField(
         controller: _controller,
         autofocus: true,
+        minLines: 1,
+        maxLines: widget.maxLines,
+        keyboardType: widget.maxLines > 1
+            ? TextInputType.multiline
+            : TextInputType.text,
+        textInputAction: widget.maxLines > 1
+            ? TextInputAction.newline
+            : TextInputAction.done,
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(
           labelText: widget.label ?? context.l10n.title,
           hintText: widget.hint,
         ),
-        onSubmitted: (_) => _submit(),
+        onSubmitted: widget.maxLines > 1 ? null : (_) => _submit(),
       ),
       actions: [
         TextButton(

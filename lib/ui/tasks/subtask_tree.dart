@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
 import '../../providers.dart';
+import 'subtask_dialogs.dart';
 
 /// One subtask rendered as a branch under its task, file-tree style.
 ///
@@ -22,27 +23,49 @@ class SubtaskTreeRow extends ConsumerWidget {
     void toggle() =>
         ref.read(subtaskDaoProvider).setDone(subtask.id, !done);
 
+    Future<void> rename() async {
+      final title = await promptSubtaskTitle(
+        context,
+        initialValue: subtask.title,
+      );
+      if (title == null) return;
+      await ref.read(subtaskDaoProvider).rename(subtask.id, title);
+    }
+
     return InkWell(
       key: ValueKey('subtask-row-${subtask.id}'),
       onTap: toggle,
+      onLongPress: rename,
       child: Padding(
         padding: const EdgeInsets.only(left: 40, right: 16, bottom: 2),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Tree connector: vertical guide + short horizontal branch.
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: Row(
-                children: [
-                  Container(width: 1, height: 28, color: scheme.outlineVariant),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(height: 1, color: scheme.outlineVariant),
+            // Tree connector: vertical guide + short horizontal branch,
+            // aligned with the first line of a wrapped title.
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: SizedBox(
+                width: 28,
+                height: 16,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 1,
+                      height: 16,
+                      color: scheme.outlineVariant,
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          height: 1,
+                          color: scheme.outlineVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             Checkbox(
@@ -55,10 +78,10 @@ class SubtaskTreeRow extends ConsumerWidget {
             ),
             const SizedBox(width: 4),
             Expanded(
+              // No maxLines: long subtasks wrap and keep their own
+              // line breaks instead of being truncated.
               child: Text(
                 subtask.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
                   decoration: done ? TextDecoration.lineThrough : null,
                   color: done ? scheme.onSurfaceVariant : null,

@@ -5,6 +5,7 @@ import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../common/text_prompt_dialog.dart';
+import 'subtask_dialogs.dart';
 
 const tagPalette = <int>[
   0xFF4F46E5,
@@ -225,6 +226,7 @@ class LiveSubtasksEditor extends ConsumerWidget {
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
+            onTap: () => _rename(context, ref, subtask),
             leading: Checkbox(
               value: subtask.isDone,
               onChanged: (value) => ref
@@ -240,11 +242,21 @@ class LiveSubtasksEditor extends ConsumerWidget {
                     : null,
               ),
             ),
-            trailing: IconButton(
-              tooltip: context.l10n.delete,
-              icon: const Icon(Icons.close, size: 18),
-              onPressed: () =>
-                  ref.read(subtaskDaoProvider).deleteSubtask(subtask.id),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: context.l10n.edit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _rename(context, ref, subtask),
+                ),
+                IconButton(
+                  tooltip: context.l10n.delete,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () =>
+                      ref.read(subtaskDaoProvider).deleteSubtask(subtask.id),
+                ),
+              ],
             ),
           ),
         _AddSubtaskField(
@@ -253,6 +265,15 @@ class LiveSubtasksEditor extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  Future<void> _rename(BuildContext context, WidgetRef ref, Subtask subtask) async {
+    final title = await promptSubtaskTitle(
+      context,
+      initialValue: subtask.title,
+    );
+    if (title == null) return;
+    await ref.read(subtaskDaoProvider).rename(subtask.id, title);
   }
 }
 
@@ -272,6 +293,14 @@ class PendingSubtasksEditor extends StatefulWidget {
 }
 
 class _PendingSubtasksEditorState extends State<PendingSubtasksEditor> {
+  Future<void> _edit(int index, String current) async {
+    final title = await promptSubtaskTitle(context, initialValue: current);
+    if (title == null) return;
+    final next = [...widget.titles];
+    next[index] = title;
+    widget.onChanged(next);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -283,13 +312,24 @@ class _PendingSubtasksEditorState extends State<PendingSubtasksEditor> {
           ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
+            onTap: () => _edit(index, title),
             leading: const Icon(Icons.check_box_outline_blank, size: 20),
             title: Text(title),
-            trailing: IconButton(
-              tooltip: context.l10n.delete,
-              icon: const Icon(Icons.close, size: 18),
-              onPressed: () =>
-                  widget.onChanged([...widget.titles]..removeAt(index)),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: context.l10n.edit,
+                  icon: const Icon(Icons.edit_outlined, size: 18),
+                  onPressed: () => _edit(index, title),
+                ),
+                IconButton(
+                  tooltip: context.l10n.delete,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () =>
+                      widget.onChanged([...widget.titles]..removeAt(index)),
+                ),
+              ],
             ),
           ),
         _AddSubtaskField(
