@@ -22,6 +22,9 @@ app works offline and never sends data anywhere.
   line, bullets stripped, same date parsing.
 - **Calendar** — month / 2-week / week views, day agenda, events with
   daily-weekly-monthly recurrence, plus the tasks due on the selected day.
+- **Settings** — configurable swipe actions (complete / today / tomorrow /
+  delete, per direction), an optional daily reminder notification, JSON
+  export & import, app version and the open-source license page.
 - Tasks and cards are the *same entity*: a task created in the todo list shows
   up on the board and vice versa.
 
@@ -33,6 +36,11 @@ app works offline and never sends data anywhere.
 | State          | `flutter_riverpod` 3 (StreamProvider + Notifier) |
 | Calendar view  | `table_calendar` 3.x                        |
 | Drag & drop    | built in-house (`KanbanBoardView`)          |
+| Swipe actions  | `flutter_slidable`                          |
+| Preferences    | `shared_preferences` (single JSON key)      |
+| Notifications  | `flutter_local_notifications` + `timezone`  |
+| Files          | `file_picker` (import + save dialog)        |
+| Version        | `package_info_plus`                         |
 | Dates          | `intl`                                      |
 
 ## Project layout
@@ -46,9 +54,12 @@ lib/
 │   ├── date_x.dart               # day math + human date formatting
 │   ├── quick_parse.dart          # "buy milk tomorrow 9am" -> title + due date
 │   └── recurrence.dart           # event occurrence expansion (pure functions)
+├── settings/settings.dart        # AppSettings, swipe actions, store + notifier
+├── services/notification_service.dart  # daily reminder wrapper
 ├── data/
 │   ├── tables.dart               # drift table definitions + enums
 │   ├── database.dart             # AppDatabase + seed + migrations
+│   ├── backup.dart               # JSON export / import of every table
 │   └── daos/
 │       ├── board_dao.dart        # boards, columns, column reordering
 │       ├── task_dao.dart         # tasks, completion, cross-column moves
@@ -125,6 +136,21 @@ A task's `due_date` at midnight means "this day, no time"; the UI then shows
 `Today` instead of `Today · 00:00`. Adding a time (editor or `9am` in the quick
 add row) is opt-in.
 
+## Settings
+
+Reached from the gear icon in any tab.
+
+- **Swipe actions** — each direction of a Todos row can be set to complete /
+  reopen, schedule for today, schedule for tomorrow or delete. Stored as one
+  JSON blob in `shared_preferences` (`settings.v1`).
+- **Reminders** — a daily local notification at a chosen time
+  (`flutter_local_notifications` + the device timezone). The switch is hidden
+  on web, where scheduled notifications are not supported.
+- **Backup** — `BackupService.export()` serialises every table to JSON with the
+  original row ids, so task → column → board links survive an import.
+  Imports validate `app`/`version`, then replace the database in a transaction.
+- **About** — version from `package_info_plus` and Flutter's `LicensePage`.
+
 ## Running
 
 ```bash
@@ -150,6 +176,9 @@ fvm flutter test
 ```
 
 - `test/quick_parse_test.dart` — natural-language due dates in quick add.
+- `test/settings_test.dart` — settings JSON and store persistence.
+- `test/backup_test.dart` — export/import round trip, replacement and rejects
+  invalid files.
 - `test/recurrence_test.dart` — occurrence expansion for all recurrence modes.
 - `test/widget_test.dart` — `KanbanBoardView` rendering/callbacks.
 - `test/app_flow_test.dart` — the real app against an in-memory drift database:

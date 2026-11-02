@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../data/database.dart';
+import 'data/backup.dart';
+import 'data/database.dart';
 import 'core/date_x.dart';
 import 'core/recurrence.dart';
 
@@ -16,6 +17,10 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 final boardDaoProvider = Provider((ref) => ref.watch(databaseProvider).boardDao);
 final taskDaoProvider = Provider((ref) => ref.watch(databaseProvider).taskDao);
 final eventDaoProvider = Provider((ref) => ref.watch(databaseProvider).eventDao);
+
+final backupServiceProvider = Provider<BackupService>(
+  (ref) => BackupService(ref.watch(databaseProvider)),
+);
 
 /// ---------------------------------------------------------------------------
 /// Boards

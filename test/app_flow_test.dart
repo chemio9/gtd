@@ -379,6 +379,83 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('settings page exposes swipe, reminders, backup and about', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('SWIPE ACTIONS'), findsOneWidget);
+    expect(find.text('Swipe right'), findsOneWidget);
+    expect(find.text('Swipe left'), findsOneWidget);
+    expect(find.text('REMINDERS'), findsOneWidget);
+    expect(find.text('Daily reminder'), findsOneWidget);
+    expect(find.text('BACKUP'), findsOneWidget);
+    expect(find.text('Export'), findsOneWidget);
+    expect(find.text('Import'), findsOneWidget);
+    expect(find.text('ABOUT'), findsOneWidget);
+    expect(find.text('Version'), findsOneWidget);
+    expect(find.text('Licenses'), findsOneWidget);
+
+    // Licenses opens the stock Flutter page (which loads asynchronously, so
+    // settle on a fixed pump instead of pumpAndSettle).
+    await tester.tap(find.text('Licenses'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(LicensePage), findsOneWidget);
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('swipe actions follow the preference', (tester) async {
+    await pumpApp(tester);
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    await db.taskDao.createTask(
+      title: 'Sweep the floor',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+
+    // Default preference: swipe left deletes.
+    await tester.tap(find.byTooltip('Settings'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete'), findsOneWidget);
+
+    // Change it to "schedule for tomorrow".
+    await tester.tap(find.text('Swipe left'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Schedule for tomorrow').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Schedule for tomorrow'),
+      findsOneWidget,
+    ); // tile trailing label
+
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.text('Sweep the floor'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    expect(find.text('Tomorrow'), findsOneWidget);
+    await tester.tap(find.text('Tomorrow'));
+    await tester.pumpAndSettle();
+
+    final saved = await task('Sweep the floor');
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    expect(saved!.dueDate!.day, tomorrow.day);
+    expect(saved.dueDate!.hour, 0);
+    expect(saved.completedAt, isNull);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

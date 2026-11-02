@@ -6,6 +6,7 @@ import '../../providers.dart';
 import '../common/text_prompt_dialog.dart';
 import '../kanban/kanban_board_view.dart';
 import 'inline_card_add.dart';
+import '../settings/settings_button.dart';
 import '../tasks/task_card.dart';
 import '../tasks/task_editor_sheet.dart';
 
@@ -53,6 +54,7 @@ class _BoardPageState extends ConsumerState<BoardPage> {
             onPressed: () => showTaskEditor(context, boardId: board.id),
             icon: const Icon(Icons.add_task),
           ),
+          const SettingsButton(),
         ],
       ),
       body: columnsAsync.when(

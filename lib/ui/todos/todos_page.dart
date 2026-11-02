@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/services.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_x.dart';
+import '../../data/database.dart';
+import '../../settings/settings.dart';
 import '../../core/quick_parse.dart';
 import '../../providers.dart';
+import '../settings/settings_button.dart';
 import '../tasks/quick_add_bar.dart';
 import '../tasks/task_card.dart';
 import '../tasks/task_editor_sheet.dart';
@@ -48,6 +53,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
   Widget build(BuildContext context) {
     final groups = ref.watch(groupedTodosProvider);
     final filter = ref.watch(todoFilterProvider);
+    final settings = ref.watch(settingsProvider);
     final filterNotifier = ref.read(todoFilterProvider.notifier);
     final board = ref.watch(activeBoardProvider);
     final isLoading = ref.watch(allTasksProvider).isLoading;
@@ -92,6 +98,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
               ),
             ],
           ),
+          const SettingsButton(),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
@@ -139,7 +146,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                 ? const Center(child: CircularProgressIndicator())
                 : groups.isEmpty
                 ? _EmptyState(filter: filter)
-                : ListView(
+                : SlidableAutoCloseBehavior(
+                    child: ListView(
                     padding: const EdgeInsets.only(bottom: 96),
                     children: [
                       for (final entry in groups.entries) ...[
@@ -150,9 +158,13 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                         for (final task in entry.value)
                           TaskTile(
                             task: task,
+                            startAction: settings.swipeStart,
+                            endAction: settings.swipeEnd,
                             onToggle: (value) => ref
                                 .read(taskDaoProvider)
                                 .setCompleted(task, completed: value),
+                            onSwipeAction: (action) =>
+                                _runSwipeAction(task, action),
                             onTap: board == null
                                 ? null
                                 : () => showTaskEditor(
@@ -160,11 +172,10 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                                     boardId: task.boardId ?? board.id,
                                     task: task,
                                   ),
-                            onDelete: () =>
-                                ref.read(taskDaoProvider).deleteTask(task.id),
                           ),
                       ],
                     ],
+                  ),
                   ),
           ),
         ],
@@ -172,11 +183,48 @@ class _TodosPageState extends ConsumerState<TodosPage> {
       floatingActionButton: board == null
           ? null
           : FloatingActionButton(
+              heroTag: 'todos-fab',
               onPressed: _expandQuickAdd,
               tooltip: 'Add a task',
               child: const Icon(Icons.add),
             ),
     );
+  }
+
+  /// Applies the action the user configured for a swipe direction.
+  Future<void> _runSwipeAction(Task task, SwipeAction action) async {
+    final dao = ref.read(taskDaoProvider);
+    final today = dateOnly(DateTime.now());
+
+    switch (action) {
+      case SwipeAction.toggleComplete:
+        await dao.setCompleted(task, completed: task.completedAt == null);
+      case SwipeAction.scheduleToday:
+        await dao.updateTask(
+          task.id,
+          TasksCompanion(dueDate: Value(today)),
+        );
+      case SwipeAction.scheduleTomorrow:
+        await dao.updateTask(
+          task.id,
+          TasksCompanion(
+            dueDate: Value(today.add(const Duration(days: 1))),
+          ),
+        );
+      case SwipeAction.delete:
+        await dao.deleteTask(task.id);
+        if (!mounted) return;
+        _snack(
+          'Deleted "${task.title}"',
+          action: SnackBarAction(
+            label: 'Undo',
+            onPressed: () async {
+              final db = ref.read(databaseProvider);
+              await db.into(db.tasks).insert(task.toCompanion(true));
+            },
+          ),
+        );
+    }
   }
 
   /// Turns the clipboard into one task per line (`- ` bullets are stripped).

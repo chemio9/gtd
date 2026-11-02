@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 import '../../core/date_x.dart';
 import '../../data/database.dart';
+import '../../settings/settings.dart';
 
 Color priorityColor(BuildContext context, TaskPriority priority) {
   final scheme = Theme.of(context).colorScheme;
@@ -172,20 +174,29 @@ class _Chip extends StatelessWidget {
   }
 }
 
-/// One line in the todo list.
+/// One line in the todo list, with configurable swipe actions.
 class TaskTile extends StatelessWidget {
   const TaskTile({
     super.key,
     required this.task,
     required this.onToggle,
     this.onTap,
-    this.onDelete,
+    this.startAction = SwipeAction.toggleComplete,
+    this.endAction = SwipeAction.delete,
+    this.onSwipeAction,
   });
 
   final Task task;
   final ValueChanged<bool> onToggle;
   final VoidCallback? onTap;
-  final VoidCallback? onDelete;
+
+  /// Action revealed when swiping towards the end (left in LTR).
+  final SwipeAction startAction;
+
+  /// Action revealed when swiping towards the start (right in LTR).
+  final SwipeAction endAction;
+
+  final ValueChanged<SwipeAction>? onSwipeAction;
 
   @override
   Widget build(BuildContext context) {
@@ -196,18 +207,10 @@ class TaskTile extends StatelessWidget {
     final overdue =
         due != null && !done && dateOnly(due).isBefore(dateOnly(DateTime.now()));
 
-    return Dismissible(
+    return Slidable(
       key: ValueKey('task-${task.id}'),
-      direction: onDelete == null
-          ? DismissDirection.none
-          : DismissDirection.endToStart,
-      onDismissed: (_) => onDelete?.call(),
-      background: Container(
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: scheme.errorContainer,
-        child: Icon(Icons.delete_outline, color: scheme.onErrorContainer),
-      ),
+      startActionPane: _pane(scheme, startAction),
+      endActionPane: _pane(scheme, endAction),
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
@@ -259,6 +262,27 @@ class TaskTile extends StatelessWidget {
                 ),
               ),
       ),
+    );
+  }
+
+  ActionPane? _pane(ColorScheme scheme, SwipeAction action) {
+    if (onSwipeAction == null) return null;
+    return ActionPane(
+      motion: const DrawerMotion(),
+      extentRatio: .34,
+      children: [
+        SlidableAction(
+          onPressed: (_) => onSwipeAction!(action),
+          backgroundColor: action.isDestructive
+              ? scheme.errorContainer
+              : scheme.secondaryContainer,
+          foregroundColor: action.isDestructive
+              ? scheme.onErrorContainer
+              : scheme.onSecondaryContainer,
+          icon: action.icon,
+          label: action.shortLabel,
+        ),
+      ],
     );
   }
 }

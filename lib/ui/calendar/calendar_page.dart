@@ -6,6 +6,7 @@ import '../../core/date_x.dart';
 import '../../core/recurrence.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
+import '../settings/settings_button.dart';
 import '../tasks/task_editor_sheet.dart';
 import 'event_editor_sheet.dart';
 
@@ -89,6 +90,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 .set(DateTime.now()),
             icon: const Icon(Icons.today_outlined),
           ),
+          const SettingsButton(),
         ],
       ),
       body: Column(
@@ -200,6 +202,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'calendar-fab',
         onPressed: () => showEventEditor(context, initialDay: focusedDay),
         icon: const Icon(Icons.event),
         label: const Text('New event'),

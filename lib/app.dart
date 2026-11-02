@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'settings/settings.dart';
 import 'ui/board/board_page.dart';
 import 'ui/calendar/calendar_page.dart';
 import 'ui/todos/todos_page.dart';
@@ -91,4 +92,15 @@ class _HomeShellState extends State<HomeShell> {
 }
 
 /// Convenience wrapper so `main.dart` stays tiny.
-Widget buildApp() => const ProviderScope(child: GtdApp());
+///
+/// [settingsStore] is overridden with the SharedPreferences-backed store in
+/// `main()`; tests keep the in-memory default.
+Widget buildApp({SettingsStore? settingsStore}) {
+  return ProviderScope(
+    overrides: [
+      if (settingsStore != null)
+        settingsStoreProvider.overrideWithValue(settingsStore),
+    ],
+    child: const GtdApp(),
+  );
+}
