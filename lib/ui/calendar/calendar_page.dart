@@ -63,6 +63,16 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
     final window = _window(focusedDay);
     final byDay = ref.watch(occurrencesByDayProvider(window));
 
+    // Tasks due anywhere in the visible window, keyed by day for the markers.
+    final tasksInWindow =
+        ref.watch(tasksDueBetweenProvider(window)).value ?? const <Task>[];
+    final tasksByDay = <DateTime, List<Task>>{};
+    for (final task in tasksInWindow) {
+      final due = task.dueDate;
+      if (due == null) continue;
+      tasksByDay.putIfAbsent(dateOnly(due), () => <Task>[]).add(task);
+    }
+
     final dayStart = dateOnly(focusedDay);
     final dayEnd = dayStart.add(const Duration(days: 1));
     final tasksDue =
@@ -156,21 +166,26 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
             ),
             calendarBuilders: CalendarBuilders(
               markerBuilder: (context, day, events) {
-                if (events.isEmpty) return null;
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (var i = 0; i < events.length.clamp(0, 3); i++)
-                      Container(
-                        margin: const EdgeInsets.only(top: 24, right: 2),
-                        width: 5,
-                        height: 5,
-                        decoration: BoxDecoration(
+                final dayTasks = tasksByDay[dateOnly(day)] ?? const <Task>[];
+                if (events.isEmpty && dayTasks.isEmpty) return null;
+                return Padding(
+                  padding: const EdgeInsets.only(top: 26),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < events.length.clamp(0, 3); i++)
+                        _CalendarDot(
+                          key: const ValueKey('calendar-event-dot'),
                           color: theme.colorScheme.tertiary,
-                          shape: BoxShape.circle,
                         ),
-                      ),
-                  ],
+                      if (dayTasks.isNotEmpty)
+                        _CalendarDot(
+                          key: const ValueKey('calendar-task-dot'),
+                          color: theme.colorScheme.secondary,
+                        ),
+                    ],
+                  ),
                 );
               },
             ),
@@ -413,6 +428,23 @@ class _TaskEntryTile extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Small marker rendered under a day number.
+class _CalendarDot extends StatelessWidget {
+  const _CalendarDot({super.key, required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(right: 2),
+      width: 5,
+      height: 5,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 }

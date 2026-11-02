@@ -179,28 +179,6 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
     _controller.clear();
     _focusNode.requestFocus();
 
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    messenger
-      ?..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            ids.length == 1
-                ? context.l10n.quickAddAddedOne(parsedLines.single.title)
-                : context.l10n.quickAddAddedMany(ids.length),
-          ),
-          duration: const Duration(seconds: 3),
-          action: SnackBarAction(
-            label: context.l10n.undo,
-            onPressed: () async {
-              for (final id in ids) {
-                await dao.deleteTask(id);
-              }
-            },
-          ),
-        ),
-      );
-
     if (parsedLines.length == 1) {
       final task = await dao.taskById(ids.single);
       if (task != null) widget.onTaskAdded?.call(task);

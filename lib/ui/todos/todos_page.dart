@@ -227,6 +227,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
         if (!mounted) return;
         _snack(
           context.l10n.todosDeletedTask(task.title),
+          duration: const Duration(seconds: 4),
           action: SnackBarAction(
             label: context.l10n.undo,
             onPressed: () async {
@@ -269,28 +270,28 @@ class _TodosPageState extends ConsumerState<TodosPage> {
     }
     if (ids.isEmpty || !mounted) return;
 
+    // Informational only: undo is reserved for destructive actions.
     _snack(
       ids.length == 1
           ? l10n.todosAddedTask(lines.first)
           : l10n.todosAddedTasks(ids.length),
-      action: SnackBarAction(
-        label: 'Undo',
-        onPressed: () async {
-          for (final id in ids) {
-            await dao.deleteTask(id);
-          }
-        },
-      ),
     );
   }
 
-  void _snack(String message, {SnackBarAction? action}) {
+  void _snack(
+    String message, {
+    SnackBarAction? action,
+    Duration duration = const Duration(seconds: 3),
+  }) {
     ScaffoldMessenger.maybeOf(context)
       ?..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
           content: Text(message),
-          duration: const Duration(seconds: 3),
+          duration: duration,
+          // SnackBars with an action persist by default in Material 3; the
+          // undo hint must disappear with the timer like any other toast.
+          persist: false,
           action: action,
         ),
       );

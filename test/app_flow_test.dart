@@ -743,6 +743,78 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('calendar shows a dot on days that have tasks', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final today = dateOnly(DateTime.now());
+    await db.taskDao.createTask(
+      title: 'Pay rent',
+      boardId: board.id,
+      columnId: column!.id,
+      dueDate: today,
+    );
+    await db.taskDao.createTask(
+      title: 'Water plants',
+      boardId: board.id,
+      columnId: column.id,
+      dueDate: today.add(const Duration(days: 2)),
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Calendar');
+    await tester.pumpAndSettle();
+
+    // Task-only days get the secondary dot, without an event dot.
+    expect(find.byKey(const ValueKey('calendar-task-dot')), findsWidgets);
+    expect(find.byKey(const ValueKey('calendar-event-dot')), findsNothing);
+
+    // Adding an event on a day adds the event dot next to the task dot.
+    await db.eventDao.createEvent(
+      EventsCompanion.insert(
+        title: 'Design review',
+        startsAt: today.add(const Duration(hours: 15)),
+        endsAt: today.add(const Duration(hours: 16)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('calendar-event-dot')), findsWidgets);
+    expect(find.byKey(const ValueKey('calendar-task-dot')), findsWidgets);
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('undo is only offered for deletions', (tester) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+
+    // Adding a task gives no snackbar and no undo affordance.
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Buy milk');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Buy milk'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(find.text('Undo'), findsNothing);
+
+    // Deleting (default swipe left) offers undo, and it expires.
+    await tester.drag(find.text('Buy milk'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Undo'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('Undo'), findsNothing);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 
