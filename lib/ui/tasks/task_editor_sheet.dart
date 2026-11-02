@@ -67,9 +67,20 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late TaskPriority _priority = widget.task?.priority ?? TaskPriority.medium;
   late int? _columnId = widget.task?.columnId ?? widget.initialColumnId;
   late bool _completed = widget.task?.completedAt != null;
+  late int? _reminder = widget.task?.reminderMinutesBefore;
   bool _saving = false;
 
   bool get _isEditing => widget.task != null;
+
+  String _reminderLabel(BuildContext context, int minutes) =>
+      switch (minutes) {
+        5 => context.l10n.reminderBefore5m,
+        15 => context.l10n.reminderBefore15m,
+        60 => context.l10n.reminderBefore1h,
+        180 => context.l10n.reminderBefore3h,
+        1440 => context.l10n.reminderBefore1d,
+        _ => context.l10n.taskReminderNone,
+      };
 
   String _priorityLabel(BuildContext context, TaskPriority priority) =>
       switch (priority) {
@@ -149,6 +160,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           title: Value(title),
           notes: Value(notes.isEmpty ? null : notes),
           dueDate: Value(_dueDate),
+          reminderMinutesBefore: Value(_reminder),
           priority: Value(_priority),
           columnId: Value(columnId),
           boardId: Value(widget.boardId),
@@ -164,6 +176,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         boardId: widget.boardId,
         columnId: columnId,
         dueDate: _dueDate,
+        reminderMinutesBefore: _reminder,
         priority: _priority,
       );
     }
@@ -303,12 +316,52 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                     ),
                   IconButton(
                     tooltip: context.l10n.taskClearDueDate,
-                    onPressed: () => setState(() => _dueDate = null),
+                    onPressed: () => setState(() {
+                      _dueDate = null;
+                      _reminder = null;
+                    }),
                     icon: const Icon(Icons.close),
                   ),
                 ],
               ],
             ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<int?>(
+              initialValue: _reminder,
+              decoration: InputDecoration(
+                labelText: context.l10n.taskReminder,
+                border: const OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.notifications_active_outlined),
+              ),
+              items: [
+                DropdownMenuItem(
+                  value: null,
+                  child: Text(context.l10n.taskReminderNone),
+                ),
+                DropdownMenuItem(
+                  value: 0,
+                  child: Text(context.l10n.taskReminderAtDue),
+                ),
+                for (final minutes in const [5, 15, 60, 180, 1440])
+                  DropdownMenuItem(
+                    value: minutes,
+                    child: Text(_reminderLabel(context, minutes)),
+                  ),
+              ],
+              onChanged: _dueDate == null
+                  ? null
+                  : (value) => setState(() => _reminder = value),
+            ),
+            if (_dueDate == null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  context.l10n.taskReminderNeedsDue,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             if (columns.isNotEmpty) ...[
               const SizedBox(height: 16),
               DropdownButtonFormField<int?>(

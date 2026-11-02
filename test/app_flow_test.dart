@@ -596,6 +596,37 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('a task can carry a reminder offset', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final due = dateOnly(DateTime.now()).add(const Duration(hours: 18));
+    final taskId = await db.taskDao.createTask(
+      title: 'Call the plumber',
+      boardId: board.id,
+      columnId: column!.id,
+      dueDate: due,
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.tap(find.text('Call the plumber').last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('No reminder'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('3 hours before').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    final saved = await db.taskDao.taskById(taskId);
+    expect(saved!.reminderMinutesBefore, 180);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

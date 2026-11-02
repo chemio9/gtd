@@ -103,6 +103,7 @@ void main() {
 
     final raw = sqlite.sqlite3.open(file.path);
     raw.execute('ALTER TABLE events DROP COLUMN linked_task_id');
+    raw.execute('ALTER TABLE tasks DROP COLUMN reminder_minutes_before');
     raw.execute('PRAGMA user_version = 1');
     raw.close();
 
@@ -117,10 +118,15 @@ void main() {
     final version = await upgraded
         .customSelect('PRAGMA user_version')
         .getSingle();
-    expect(version.data['user_version'], 2);
+    expect(version.data['user_version'], 3);
 
-    // The new column is usable after the upgrade.
-    final taskId = await upgraded.taskDao.createTask(title: 'After upgrade');
+    // The new columns are usable after the upgrade.
+    final taskId = await upgraded.taskDao.createTask(
+      title: 'After upgrade',
+      reminderMinutesBefore: 60,
+    );
+    final upgradedTask = await upgraded.taskDao.taskById(taskId);
+    expect(upgradedTask!.reminderMinutesBefore, 60);
     await upgraded.eventDao.linkTask(events.single.id, taskId);
     expect(
       (await upgraded.eventDao.eventById(events.single.id))!.linkedTaskId,

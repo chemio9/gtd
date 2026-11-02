@@ -229,7 +229,7 @@
   "taskReminder": "Remind me",
   "taskReminderNone": "No reminder",
   "taskReminderAtDue": "At the due time",
-  "taskReminderNeedsDue": "Set a due date first",
+  "taskReminderNeedsDue": "Set a due date to add a reminder",
   "taskReminderBefore": "{label} before",
   "@taskReminderBefore": {
     "placeholders": {
@@ -434,5 +434,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "reminderBefore5m": "5 minutes before",
+  "reminderBefore15m": "15 minutes before",
+  "reminderBefore1h": "1 hour before",
+  "reminderBefore3h": "3 hours before",
+  "reminderBefore1d": "1 day before",
+  "reminderNotificationTitle": "Reminder"
 }

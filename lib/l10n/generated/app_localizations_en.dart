@@ -438,7 +438,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskReminderAtDue => 'At the due time';
 
   @override
-  String get taskReminderNeedsDue => 'Set a due date first';
+  String get taskReminderNeedsDue => 'Set a due date to add a reminder';
 
   @override
   String taskReminderBefore(String label) {
@@ -708,4 +708,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String searchNoResults(String query) {
     return 'Nothing found for \"$query\"';
   }
+
+  @override
+  String get reminderBefore5m => '5 minutes before';
+
+  @override
+  String get reminderBefore15m => '15 minutes before';
+
+  @override
+  String get reminderBefore1h => '1 hour before';
+
+  @override
+  String get reminderBefore3h => '3 hours before';
+
+  @override
+  String get reminderBefore1d => '1 day before';
+
+  @override
+  String get reminderNotificationTitle => 'Reminder';
 }

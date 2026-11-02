@@ -24,6 +24,7 @@ void main() {
       boardId: board.id,
       columnId: columns[1].id,
       dueDate: DateTime(2026, 11, 3, 9, 45),
+      reminderMinutesBefore: 180,
       priority: TaskPriority.high,
     );
     await source.taskDao.setCompleted(
@@ -75,6 +76,7 @@ void main() {
     expect(task.notes, 'with notes');
     expect(task.priority, TaskPriority.high);
     expect(task.dueDate, DateTime(2026, 11, 3, 9, 45));
+    expect(task.reminderMinutesBefore, 180);
     expect(task.completedAt, isNotNull);
 
     // The task still points at the imported column of the imported board.

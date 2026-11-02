@@ -887,7 +887,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskReminderNeedsDue.
   ///
   /// In en, this message translates to:
-  /// **'Set a due date first'**
+  /// **'Set a due date to add a reminder'**
   String get taskReminderNeedsDue;
 
   /// No description provided for @taskReminderBefore.
@@ -1345,6 +1345,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Nothing found for \"{query}\"'**
   String searchNoResults(String query);
+
+  /// No description provided for @reminderBefore5m.
+  ///
+  /// In en, this message translates to:
+  /// **'5 minutes before'**
+  String get reminderBefore5m;
+
+  /// No description provided for @reminderBefore15m.
+  ///
+  /// In en, this message translates to:
+  /// **'15 minutes before'**
+  String get reminderBefore15m;
+
+  /// No description provided for @reminderBefore1h.
+  ///
+  /// In en, this message translates to:
+  /// **'1 hour before'**
+  String get reminderBefore1h;
+
+  /// No description provided for @reminderBefore3h.
+  ///
+  /// In en, this message translates to:
+  /// **'3 hours before'**
+  String get reminderBefore3h;
+
+  /// No description provided for @reminderBefore1d.
+  ///
+  /// In en, this message translates to:
+  /// **'1 day before'**
+  String get reminderBefore1d;
+
+  /// No description provided for @reminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder'**
+  String get reminderNotificationTitle;
 }
 
 class _AppLocalizationsDelegate

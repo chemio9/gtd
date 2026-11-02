@@ -117,6 +117,13 @@ class TaskCard extends StatelessWidget {
                             ? scheme.errorContainer
                             : scheme.surfaceContainerHighest,
                       ),
+                    if (task.reminderMinutesBefore != null)
+                      _Chip(
+                        icon: Icons.notifications_active,
+                        label: '${task.reminderMinutesBefore}m',
+                        color: scheme.onSurfaceVariant,
+                        background: scheme.surfaceContainerHighest,
+                      ),
                     if (task.priority != TaskPriority.medium)
                       _Chip(
                         label: task.priority.label,
@@ -260,6 +267,15 @@ class TaskTile extends StatelessWidget {
             : Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (task.reminderMinutesBefore != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.notifications_active_outlined,
+                        size: 16,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
                   if (hasLinkedEvent)
                     Padding(
                       padding: const EdgeInsets.only(right: 8),

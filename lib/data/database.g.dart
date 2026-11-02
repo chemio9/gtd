@@ -725,6 +725,16 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _reminderMinutesBeforeMeta =
+      const VerificationMeta('reminderMinutesBefore');
+  @override
+  late final GeneratedColumn<int> reminderMinutesBefore = GeneratedColumn<int>(
+    'reminder_minutes_before',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   @override
   late final GeneratedColumnWithTypeConverter<TaskPriority, int> priority =
       GeneratedColumn<int>(
@@ -790,6 +800,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     title,
     notes,
     dueDate,
+    reminderMinutesBefore,
     priority,
     position,
     completedAt,
@@ -841,6 +852,15 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       context.handle(
         _dueDateMeta,
         dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta),
+      );
+    }
+    if (data.containsKey('reminder_minutes_before')) {
+      context.handle(
+        _reminderMinutesBeforeMeta,
+        reminderMinutesBefore.isAcceptableOrUnknown(
+          data['reminder_minutes_before']!,
+          _reminderMinutesBeforeMeta,
+        ),
       );
     }
     if (data.containsKey('position')) {
@@ -903,6 +923,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_date'],
       ),
+      reminderMinutesBefore: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reminder_minutes_before'],
+      ),
       priority: $TasksTable.$converterpriority.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.int,
@@ -944,6 +968,9 @@ class Task extends DataClass implements Insertable<Task> {
   final String title;
   final String? notes;
   final DateTime? dueDate;
+
+  /// Minutes before the due time to fire a reminder; null = no reminder.
+  final int? reminderMinutesBefore;
   final TaskPriority priority;
   final int position;
   final DateTime? completedAt;
@@ -956,6 +983,7 @@ class Task extends DataClass implements Insertable<Task> {
     required this.title,
     this.notes,
     this.dueDate,
+    this.reminderMinutesBefore,
     required this.priority,
     required this.position,
     this.completedAt,
@@ -978,6 +1006,9 @@ class Task extends DataClass implements Insertable<Task> {
     }
     if (!nullToAbsent || dueDate != null) {
       map['due_date'] = Variable<DateTime>(dueDate);
+    }
+    if (!nullToAbsent || reminderMinutesBefore != null) {
+      map['reminder_minutes_before'] = Variable<int>(reminderMinutesBefore);
     }
     {
       map['priority'] = Variable<int>(
@@ -1009,6 +1040,9 @@ class Task extends DataClass implements Insertable<Task> {
       dueDate: dueDate == null && nullToAbsent
           ? const Value.absent()
           : Value(dueDate),
+      reminderMinutesBefore: reminderMinutesBefore == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reminderMinutesBefore),
       priority: Value(priority),
       position: Value(position),
       completedAt: completedAt == null && nullToAbsent
@@ -1031,6 +1065,9 @@ class Task extends DataClass implements Insertable<Task> {
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String?>(json['notes']),
       dueDate: serializer.fromJson<DateTime?>(json['dueDate']),
+      reminderMinutesBefore: serializer.fromJson<int?>(
+        json['reminderMinutesBefore'],
+      ),
       priority: $TasksTable.$converterpriority.fromJson(
         serializer.fromJson<int>(json['priority']),
       ),
@@ -1050,6 +1087,7 @@ class Task extends DataClass implements Insertable<Task> {
       'title': serializer.toJson<String>(title),
       'notes': serializer.toJson<String?>(notes),
       'dueDate': serializer.toJson<DateTime?>(dueDate),
+      'reminderMinutesBefore': serializer.toJson<int?>(reminderMinutesBefore),
       'priority': serializer.toJson<int>(
         $TasksTable.$converterpriority.toJson(priority),
       ),
@@ -1067,6 +1105,7 @@ class Task extends DataClass implements Insertable<Task> {
     String? title,
     Value<String?> notes = const Value.absent(),
     Value<DateTime?> dueDate = const Value.absent(),
+    Value<int?> reminderMinutesBefore = const Value.absent(),
     TaskPriority? priority,
     int? position,
     Value<DateTime?> completedAt = const Value.absent(),
@@ -1079,6 +1118,9 @@ class Task extends DataClass implements Insertable<Task> {
     title: title ?? this.title,
     notes: notes.present ? notes.value : this.notes,
     dueDate: dueDate.present ? dueDate.value : this.dueDate,
+    reminderMinutesBefore: reminderMinutesBefore.present
+        ? reminderMinutesBefore.value
+        : this.reminderMinutesBefore,
     priority: priority ?? this.priority,
     position: position ?? this.position,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
@@ -1093,6 +1135,9 @@ class Task extends DataClass implements Insertable<Task> {
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      reminderMinutesBefore: data.reminderMinutesBefore.present
+          ? data.reminderMinutesBefore.value
+          : this.reminderMinutesBefore,
       priority: data.priority.present ? data.priority.value : this.priority,
       position: data.position.present ? data.position.value : this.position,
       completedAt: data.completedAt.present
@@ -1112,6 +1157,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueDate: $dueDate, ')
+          ..write('reminderMinutesBefore: $reminderMinutesBefore, ')
           ..write('priority: $priority, ')
           ..write('position: $position, ')
           ..write('completedAt: $completedAt, ')
@@ -1129,6 +1175,7 @@ class Task extends DataClass implements Insertable<Task> {
     title,
     notes,
     dueDate,
+    reminderMinutesBefore,
     priority,
     position,
     completedAt,
@@ -1145,6 +1192,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.title == this.title &&
           other.notes == this.notes &&
           other.dueDate == this.dueDate &&
+          other.reminderMinutesBefore == this.reminderMinutesBefore &&
           other.priority == this.priority &&
           other.position == this.position &&
           other.completedAt == this.completedAt &&
@@ -1159,6 +1207,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String> title;
   final Value<String?> notes;
   final Value<DateTime?> dueDate;
+  final Value<int?> reminderMinutesBefore;
   final Value<TaskPriority> priority;
   final Value<int> position;
   final Value<DateTime?> completedAt;
@@ -1171,6 +1220,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.title = const Value.absent(),
     this.notes = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.reminderMinutesBefore = const Value.absent(),
     this.priority = const Value.absent(),
     this.position = const Value.absent(),
     this.completedAt = const Value.absent(),
@@ -1184,6 +1234,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     required String title,
     this.notes = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.reminderMinutesBefore = const Value.absent(),
     this.priority = const Value.absent(),
     this.position = const Value.absent(),
     this.completedAt = const Value.absent(),
@@ -1197,6 +1248,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? title,
     Expression<String>? notes,
     Expression<DateTime>? dueDate,
+    Expression<int>? reminderMinutesBefore,
     Expression<int>? priority,
     Expression<int>? position,
     Expression<DateTime>? completedAt,
@@ -1210,6 +1262,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
       if (dueDate != null) 'due_date': dueDate,
+      if (reminderMinutesBefore != null)
+        'reminder_minutes_before': reminderMinutesBefore,
       if (priority != null) 'priority': priority,
       if (position != null) 'position': position,
       if (completedAt != null) 'completed_at': completedAt,
@@ -1225,6 +1279,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String>? title,
     Value<String?>? notes,
     Value<DateTime?>? dueDate,
+    Value<int?>? reminderMinutesBefore,
     Value<TaskPriority>? priority,
     Value<int>? position,
     Value<DateTime?>? completedAt,
@@ -1238,6 +1293,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
       title: title ?? this.title,
       notes: notes ?? this.notes,
       dueDate: dueDate ?? this.dueDate,
+      reminderMinutesBefore:
+          reminderMinutesBefore ?? this.reminderMinutesBefore,
       priority: priority ?? this.priority,
       position: position ?? this.position,
       completedAt: completedAt ?? this.completedAt,
@@ -1266,6 +1323,11 @@ class TasksCompanion extends UpdateCompanion<Task> {
     }
     if (dueDate.present) {
       map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (reminderMinutesBefore.present) {
+      map['reminder_minutes_before'] = Variable<int>(
+        reminderMinutesBefore.value,
+      );
     }
     if (priority.present) {
       map['priority'] = Variable<int>(
@@ -1296,6 +1358,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('title: $title, ')
           ..write('notes: $notes, ')
           ..write('dueDate: $dueDate, ')
+          ..write('reminderMinutesBefore: $reminderMinutesBefore, ')
           ..write('priority: $priority, ')
           ..write('position: $position, ')
           ..write('completedAt: $completedAt, ')
@@ -2802,6 +2865,7 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   required String title,
   Value<String?> notes,
   Value<DateTime?> dueDate,
+  Value<int?> reminderMinutesBefore,
   Value<TaskPriority> priority,
   Value<int> position,
   Value<DateTime?> completedAt,
@@ -2815,6 +2879,7 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<String> title,
   Value<String?> notes,
   Value<DateTime?> dueDate,
+  Value<int?> reminderMinutesBefore,
   Value<TaskPriority> priority,
   Value<int> position,
   Value<DateTime?> completedAt,
@@ -2905,6 +2970,11 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
 
   ColumnFilters<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get reminderMinutesBefore => $composableBuilder(
+    column: $table.reminderMinutesBefore,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3035,6 +3105,11 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get reminderMinutesBefore => $composableBuilder(
+    column: $table.reminderMinutesBefore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get priority => $composableBuilder(
     column: $table.priority,
     builder: (column) => ColumnOrderings(column),
@@ -3127,6 +3202,11 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<int> get reminderMinutesBefore => $composableBuilder(
+    column: $table.reminderMinutesBefore,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<TaskPriority, int> get priority =>
       $composableBuilder(column: $table.priority, builder: (column) => column);
@@ -3251,6 +3331,7 @@ class $$TasksTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<int?> reminderMinutesBefore = const Value.absent(),
                 Value<TaskPriority> priority = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -3263,6 +3344,7 @@ class $$TasksTableTableManager
                 title: title,
                 notes: notes,
                 dueDate: dueDate,
+                reminderMinutesBefore: reminderMinutesBefore,
                 priority: priority,
                 position: position,
                 completedAt: completedAt,
@@ -3277,6 +3359,7 @@ class $$TasksTableTableManager
                 required String title,
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> dueDate = const Value.absent(),
+                Value<int?> reminderMinutesBefore = const Value.absent(),
                 Value<TaskPriority> priority = const Value.absent(),
                 Value<int> position = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
@@ -3289,6 +3372,7 @@ class $$TasksTableTableManager
                 title: title,
                 notes: notes,
                 dueDate: dueDate,
+                reminderMinutesBefore: reminderMinutesBefore,
                 priority: priority,
                 position: position,
                 completedAt: completedAt,

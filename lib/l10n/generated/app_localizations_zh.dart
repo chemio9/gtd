@@ -435,10 +435,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskReminderNone => '不提醒';
 
   @override
-  String get taskReminderAtDue => '到期时';
+  String get taskReminderAtDue => '到期时提醒';
 
   @override
-  String get taskReminderNeedsDue => '请先设置截止日期';
+  String get taskReminderNeedsDue => '设置截止日期后才能添加提醒';
 
   @override
   String taskReminderBefore(String label) {
@@ -703,4 +703,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String searchNoResults(String query) {
     return '没有找到“$query”';
   }
+
+  @override
+  String get reminderBefore5m => '提前 5 分钟';
+
+  @override
+  String get reminderBefore15m => '提前 15 分钟';
+
+  @override
+  String get reminderBefore1h => '提前 1 小时';
+
+  @override
+  String get reminderBefore3h => '提前 3 小时';
+
+  @override
+  String get reminderBefore1d => '提前 1 天';
+
+  @override
+  String get reminderNotificationTitle => '提醒';
 }

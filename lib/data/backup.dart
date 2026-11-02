@@ -75,6 +75,7 @@ class BackupService {
             'title': task.title,
             'notes': task.notes,
             'dueDate': task.dueDate?.toIso8601String(),
+            'reminderMinutesBefore': task.reminderMinutesBefore,
             'priority': task.priority.index,
             'position': task.position,
             'completedAt': task.completedAt?.toIso8601String(),
@@ -171,6 +172,9 @@ class BackupService {
                 title: Value(_string(json['title'], 'Task')),
                 notes: Value(json['notes'] as String?),
                 dueDate: Value(_date(json['dueDate'])),
+                reminderMinutesBefore: Value(
+                  _nullableInt(json['reminderMinutesBefore']),
+                ),
                 priority: Value(
                   priorityIndex >= 0 && priorityIndex < TaskPriority.values.length
                       ? TaskPriority.values[priorityIndex]

@@ -21,7 +21,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -33,6 +33,10 @@ class AppDatabase extends _$AppDatabase {
       // v2: events can be linked to a task.
       if (from < 2) {
         await m.addColumn(events, events.linkedTaskId);
+      }
+      // v3: per-task reminders (minutes before the due time).
+      if (from < 3) {
+        await m.addColumn(tasks, tasks.reminderMinutesBefore);
       }
     },
     beforeOpen: (details) async {

@@ -86,6 +86,9 @@ class Tasks extends Table {
   TextColumn get title => text().withLength(min: 1, max: 200)();
   TextColumn get notes => text().nullable()();
   DateTimeColumn get dueDate => dateTime().nullable()();
+
+  /// Minutes before the due time to fire a reminder; null = no reminder.
+  IntColumn get reminderMinutesBefore => integer().nullable()();
   IntColumn get priority =>
       intEnum<TaskPriority>().withDefault(const Constant(1))();
   IntColumn get position => integer().withDefault(const Constant(0))();

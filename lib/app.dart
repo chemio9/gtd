@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/calendar_sync.dart';
 import 'l10n/l10n.dart';
+import 'providers.dart';
+import 'services/task_reminder_scheduler.dart';
 import 'settings/settings.dart';
 import 'ui/board/board_page.dart';
 import 'ui/calendar/calendar_page.dart';
@@ -55,18 +57,45 @@ class GtdApp extends StatelessWidget {
   }
 }
 
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncReminders());
+  }
+
+  /// Mirrors task reminders into the OS notification scheduler. Failures are
+  /// swallowed: a missing plugin (tests, unsupported platform) must never
+  /// break the UI.
+  Future<void> _syncReminders() async {
+    try {
+      final settings = ref.read(settingsProvider);
+      final scheduler = ref.read(taskReminderSchedulerProvider);
+      if (!settings.notificationsEnabled) {
+        await scheduler.syncAll(const []);
+        return;
+      }
+      final tasks = ref.read(allTasksProvider).value;
+      if (tasks == null) return;
+      await scheduler.syncAll(tasks);
+    } on Object {
+      // Notifications are best-effort.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    ref.listen(allTasksProvider, (_, _) => _syncReminders());
+    ref.listen(settingsProvider, (_, _) => _syncReminders());
     return Scaffold(
       body: IndexedStack(
         index: _index,

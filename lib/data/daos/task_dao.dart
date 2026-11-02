@@ -49,6 +49,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     int? boardId,
     int? columnId,
     DateTime? dueDate,
+    int? reminderMinutesBefore,
     TaskPriority priority = TaskPriority.medium,
     int? position,
   }) async {
@@ -73,6 +74,7 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         boardId: Value(boardId),
         columnId: Value(resolvedColumnId),
         dueDate: Value(dueDate),
+        reminderMinutesBefore: Value(reminderMinutesBefore),
         priority: Value(priority),
         position: Value(resolvedPosition),
       ),

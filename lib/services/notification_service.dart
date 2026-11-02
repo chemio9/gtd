@@ -6,15 +6,18 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'task_reminder_scheduler.dart';
+
 /// Thin wrapper around `flutter_local_notifications` for the daily reminder.
 ///
 /// Scheduled notifications need a platform scheduler, so the browser build
 /// reports [isSupported] == false and the settings UI disables the switch.
-class NotificationService {
+class NotificationService implements TaskReminderGateway {
   NotificationService();
 
   static const _reminderId = 1001;
   static const _channelId = 'daily_reminder';
+  static const _taskChannelId = 'task_reminders';
 
   final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
@@ -108,6 +111,56 @@ class NotificationService {
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
+  }
+
+  // ------------------------------------------------------------ task reminders
+
+  @override
+  Future<void> scheduleTaskReminder({
+    required int id,
+    required String title,
+    required String body,
+    required DateTime when,
+  }) async {
+    if (!isSupported) return;
+    await _ensureInitialized();
+
+    final moment = tz.TZDateTime.from(when, tz.local);
+    if (!moment.isAfter(tz.TZDateTime.now(tz.local))) return;
+
+    await _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: moment,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          _taskChannelId,
+          'Task reminders',
+          channelDescription: 'Reminders for tasks with a due date',
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+    );
+  }
+
+  @override
+  Future<void> cancelTaskReminder(int id) async {
+    if (!isSupported) return;
+    await _ensureInitialized();
+    await _plugin.cancel(id: id);
+  }
+
+  @override
+  Future<List<int>> pendingTaskReminderIds() async {
+    if (!isSupported) return const [];
+    await _ensureInitialized();
+    final pending = await _plugin.pendingNotificationRequests();
+    return [
+      for (final request in pending)
+        if (request.id >= taskReminderIdBase) request.id,
+    ];
   }
 
   Future<void> cancelDailyReminder() async {
