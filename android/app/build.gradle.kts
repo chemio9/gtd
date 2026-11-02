@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.chemio9.gtd.gtd"
+    namespace = "io.github.chemio9.gtd"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,7 +18,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "io.github.chemio9.gtd.gtd"
+        applicationId = "io.github.chemio9.gtd"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

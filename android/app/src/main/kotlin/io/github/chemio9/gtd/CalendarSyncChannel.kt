@@ -1,4 +1,4 @@
-package io.github.chemio9.gtd.gtd
+package io.github.chemio9.gtd
 
 import android.Manifest
 import android.app.Activity

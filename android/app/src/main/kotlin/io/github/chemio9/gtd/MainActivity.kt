@@ -1,4 +1,4 @@
-package io.github.chemio9.gtd.gtd
+package io.github.chemio9.gtd
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
