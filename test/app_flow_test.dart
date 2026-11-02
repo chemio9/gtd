@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gtd/app.dart';
@@ -292,6 +293,46 @@ void main() {
     final saved = await task('conference');
     expect(saved, isNotNull);
     expect(saved!.dueDate, DateTime(2026, 11, 3, 9, 45));
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('column inline add keeps a card field open for several cards', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    // The column header "+" opens an inline field instead of a sheet.
+    await tester.tap(find.byTooltip('Add task').first);
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(TextField, 'New card'), findsOneWidget);
+
+    final input = find.byType(TextField);
+    await tester.enterText(input, 'Design review fri 2pm');
+    await tester.pumpAndSettle();
+    // The parsed date is previewed under the field.
+    expect(find.textContaining('Due '), findsOneWidget);
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    await tester.enterText(input, 'Write changelog');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final cards = await db.select(db.tasks).get();
+    expect(cards.map((c) => c.title), containsAll(['Design review', 'Write changelog']));
+
+    final review = cards.firstWhere((c) => c.title == 'Design review');
+    expect(review.dueDate!.hour, 14);
+    expect(review.dueDate!.weekday, DateTime.friday);
+    final board = await db.boardDao.firstBoard();
+    final todoColumn = await db.boardDao.firstColumn(board!.id);
+    expect(review.columnId, todoColumn!.id);
+
+    // Esc closes the field.
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
 
     await disposeApp(tester);
   });

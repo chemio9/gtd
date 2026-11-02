@@ -108,6 +108,7 @@ class KanbanBoardView<T extends Object> extends StatefulWidget {
     this.onAddItem,
     this.onColumnMenu,
     this.emptyBuilder,
+    this.columnTopBuilder,
     this.dragBuilder,
     this.style = const KanbanStyle(),
     this.scrollController,
@@ -138,6 +139,11 @@ class KanbanBoardView<T extends Object> extends StatefulWidget {
 
   /// Shown by columns without items.
   final WidgetBuilder? emptyBuilder;
+
+  /// Rendered above the column's items, inside the column body. Handy for
+  /// inline "add card" fields.
+  final Widget? Function(BuildContext context, KanbanColumn<T> column)?
+  columnTopBuilder;
 
   /// Custom drag feedback. Defaults to the built card.
   final Widget Function(BuildContext context, T item)? dragBuilder;
@@ -247,6 +253,7 @@ class _KanbanBoardViewState<T extends Object>
                   onAddItem: widget.onAddItem,
                   onColumnMenu: widget.onColumnMenu,
                   emptyBuilder: widget.emptyBuilder,
+                  columnTopBuilder: widget.columnTopBuilder,
                   dragBuilder: widget.dragBuilder,
                   itemBuilder: widget.itemBuilder,
                   onDragStarted: _onDragStarted,
@@ -299,6 +306,7 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
     this.onAddItem,
     this.onColumnMenu,
     this.emptyBuilder,
+    this.columnTopBuilder,
     this.dragBuilder,
   });
 
@@ -316,6 +324,7 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
   final void Function(KanbanColumn<T>)? onAddItem;
   final void Function(BuildContext, KanbanColumn<T>)? onColumnMenu;
   final WidgetBuilder? emptyBuilder;
+  final Widget? Function(BuildContext, KanbanColumn<T>)? columnTopBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -332,6 +341,7 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _header(context, accent),
+          ?columnTopBuilder?.call(context, column),
           Expanded(
             child: column.items.isEmpty
                 ? _emptyDropZone(context, accent)

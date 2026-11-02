@@ -5,14 +5,23 @@ import '../../data/database.dart';
 import '../../providers.dart';
 import '../common/text_prompt_dialog.dart';
 import '../kanban/kanban_board_view.dart';
+import 'inline_card_add.dart';
 import '../tasks/task_card.dart';
 import '../tasks/task_editor_sheet.dart';
 
-class BoardPage extends ConsumerWidget {
+class BoardPage extends ConsumerStatefulWidget {
   const BoardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BoardPage> createState() => _BoardPageState();
+}
+
+class _BoardPageState extends ConsumerState<BoardPage> {
+  /// Column currently showing the inline "add card" field.
+  int? _addingColumnId;
+
+  @override
+  Widget build(BuildContext context) {
     final board = ref.watch(activeBoardProvider);
     final boards = ref.watch(boardsProvider).value ?? const <Board>[];
 
@@ -85,11 +94,17 @@ class BoardPage extends ConsumerWidget {
             ),
             onItemTap: (task) =>
                 showTaskEditor(context, boardId: board.id, task: task),
-            onAddItem: (column) => showTaskEditor(
-              context,
-              boardId: board.id,
-              initialColumnId: int.tryParse(column.id),
+            onAddItem: (column) => setState(
+              () => _addingColumnId = int.tryParse(column.id),
             ),
+            columnTopBuilder: (context, column) {
+              if (_addingColumnId?.toString() != column.id) return null;
+              return InlineCardAdd(
+                boardId: board.id,
+                columnId: int.parse(column.id),
+                onDone: () => setState(() => _addingColumnId = null),
+              );
+            },
             onColumnMenu: (context, column) => _showColumnMenu(
               context,
               ref,
