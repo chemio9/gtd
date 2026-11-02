@@ -50,3 +50,5 @@ when a decision or invariant changes.
 - Every behavioural change ships with tests (`flutter_test`, in-memory drift,
   fake gateways for platform channels) — no adb-driven end-to-end testing.
 - UI strings go through `context.l10n`; keep both ARB files in sync.
+- Search with the `ffgrep` / `fffind` tools, not `grep`/`rg`/`find` in bash —
+  they are git-aware (skip `build/`, `.dart_tool/`) and frecency-ranked.
