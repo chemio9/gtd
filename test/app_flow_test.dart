@@ -177,6 +177,71 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('quick add keeps the field open for several tasks in a row', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+
+    // The FAB reveals the inline field instead of opening a dialog.
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final input = find.byType(TextField);
+    expect(input, findsOneWidget);
+
+    Future<void> submit(String text) async {
+      await tester.enterText(input, text);
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+    }
+
+    await submit('Buy milk tomorrow');
+    await submit('Call the bank');
+    await submit('Ship v1 at 9am');
+
+    // The field is still there, empty and focused, ready for the next entry.
+    expect(find.byType(TextField), findsOneWidget);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, isEmpty);
+
+    final tasks = await db.select(db.tasks).get();
+    expect(tasks.map((t) => t.title), containsAll(<String>[
+      'Buy milk',
+      'Call the bank',
+      'Ship v1',
+    ]));
+    expect(tasks.every((t) => t.columnId != null), isTrue);
+
+    // All three are visible without reopening anything.
+    expect(find.text('Buy milk'), findsOneWidget);
+    expect(find.text('Call the bank'), findsOneWidget);
+    expect(find.text('Ship v1'), findsOneWidget);
+
+    await disposeApp(tester);
+  });
+
+  testWidgets('quick add understands date tokens', (tester) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Todos');
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+
+    final input = find.byType(TextField);
+    await tester.enterText(input, 'Dentist tomorrow at 9am');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final saved = await task('Dentist');
+    expect(saved, isNotNull);
+    final tomorrow = DateTime.now().add(const Duration(days: 1));
+    expect(saved!.dueDate!.day, tomorrow.day);
+    expect(saved.dueDate!.hour, 9);
+    expect(saved.dueDate!.minute, 0);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

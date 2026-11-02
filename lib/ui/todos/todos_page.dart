@@ -3,14 +3,47 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_x.dart';
 import '../../providers.dart';
+import '../tasks/quick_add_bar.dart';
 import '../tasks/task_card.dart';
 import '../tasks/task_editor_sheet.dart';
 
-class TodosPage extends ConsumerWidget {
+class TodosPage extends ConsumerStatefulWidget {
   const TodosPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodosPage> createState() => _TodosPageState();
+}
+
+class _TodosPageState extends ConsumerState<TodosPage> {
+  final GlobalKey<QuickAddBarState> _quickAddKey =
+      GlobalKey<QuickAddBarState>();
+  bool _quickAddExpanded = false;
+
+  void _expandQuickAdd() {
+    setState(() => _quickAddExpanded = true);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _quickAddKey.currentState?.focus(),
+    );
+  }
+
+  void _collapseQuickAdd() {
+    if (!_quickAddExpanded) return;
+    setState(() => _quickAddExpanded = false);
+  }
+
+  DateTime? _defaultDueDate(TodoFilter filter) {
+    final today = dateOnly(DateTime.now());
+    return switch (filter) {
+      TodoFilter.today => today,
+      TodoFilter.upcoming => today.add(const Duration(days: 1)),
+      TodoFilter.anytime => null,
+      TodoFilter.done => null,
+      TodoFilter.all => today,
+    };
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final groups = ref.watch(groupedTodosProvider);
     final filter = ref.watch(todoFilterProvider);
     final filterNotifier = ref.read(todoFilterProvider.notifier);
@@ -20,6 +53,19 @@ class TodosPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Todos'),
+        actions: [
+          IconButton(
+            tooltip: 'Detailed task',
+            onPressed: board == null
+                ? null
+                : () => showTaskEditor(
+                    context,
+                    boardId: board.id,
+                    initialDueDate: _defaultDueDate(filter),
+                  ),
+            icon: const Icon(Icons.edit_note),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(52),
           child: Align(
@@ -44,62 +90,66 @@ class TodosPage extends ConsumerWidget {
           ),
         ),
       ),
-      body: isLoading && groups.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : groups.isEmpty
-          ? _EmptyState(filter: filter)
-          : ListView(
-              padding: const EdgeInsets.only(bottom: 96),
-              children: [
-                for (final entry in groups.entries) ...[
-                  _SectionHeader(
-                    title: entry.key,
-                    count: entry.value.length,
-                  ),
-                  for (final task in entry.value)
-                    TaskTile(
-                      task: task,
-                      onToggle: (value) => ref
-                          .read(taskDaoProvider)
-                          .setCompleted(task, completed: value),
-                      onTap: board == null
-                          ? null
-                          : () => showTaskEditor(
-                              context,
-                              boardId: task.boardId ?? board.id,
-                              task: task,
-                            ),
-                      onDelete: () =>
-                          ref.read(taskDaoProvider).deleteTask(task.id),
-                    ),
-                ],
-              ],
+      body: Column(
+        children: [
+          if (board != null)
+            QuickAddBar(
+              key: _quickAddKey,
+              boardId: board.id,
+              expanded: _quickAddExpanded,
+              defaultDueDate: _defaultDueDate(filter),
+              onExpand: _expandQuickAdd,
+              onCollapse: _collapseQuickAdd,
+              onTaskAdded: (task) {
+                // A task added while looking at "Done" would be invisible.
+                if (filter == TodoFilter.done) {
+                  filterNotifier.set(TodoFilter.all);
+                }
+              },
             ),
+          Expanded(
+            child: isLoading && groups.isEmpty
+                ? const Center(child: CircularProgressIndicator())
+                : groups.isEmpty
+                ? _EmptyState(filter: filter)
+                : ListView(
+                    padding: const EdgeInsets.only(bottom: 96),
+                    children: [
+                      for (final entry in groups.entries) ...[
+                        _SectionHeader(
+                          title: entry.key,
+                          count: entry.value.length,
+                        ),
+                        for (final task in entry.value)
+                          TaskTile(
+                            task: task,
+                            onToggle: (value) => ref
+                                .read(taskDaoProvider)
+                                .setCompleted(task, completed: value),
+                            onTap: board == null
+                                ? null
+                                : () => showTaskEditor(
+                                    context,
+                                    boardId: task.boardId ?? board.id,
+                                    task: task,
+                                  ),
+                            onDelete: () =>
+                                ref.read(taskDaoProvider).deleteTask(task.id),
+                          ),
+                      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
       floatingActionButton: board == null
           ? null
-          : FloatingActionButton.extended(
-              onPressed: () => showTaskEditor(
-                context,
-                boardId: board.id,
-                initialDueDate: _defaultDueDate(filter),
-              ),
-              icon: const Icon(Icons.add),
-              label: Text(
-                filter == TodoFilter.today ? 'Add for today' : 'New task',
-              ),
+          : FloatingActionButton(
+              onPressed: _expandQuickAdd,
+              tooltip: 'Add a task',
+              child: const Icon(Icons.add),
             ),
     );
-  }
-
-  DateTime? _defaultDueDate(TodoFilter filter) {
-    final today = dateOnly(DateTime.now());
-    return switch (filter) {
-      TodoFilter.today => today,
-      TodoFilter.upcoming => today.add(const Duration(days: 1)),
-      TodoFilter.anytime => null,
-      TodoFilter.done => null,
-      TodoFilter.all => today,
-    };
   }
 
   String _filterLabel(TodoFilter filter) => switch (filter) {
@@ -169,9 +219,10 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            filter == TodoFilter.all
-                ? 'Nothing to do. Add your first task.'
-                : 'No tasks in this view.',
+            filter == TodoFilter.done
+                ? 'Nothing completed yet.'
+                : 'Nothing here. Type above to add a task.',
+            textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,
             ),
