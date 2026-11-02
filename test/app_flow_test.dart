@@ -627,6 +627,67 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('task editor adds subtasks and tags', (tester) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    await tester.pumpAndSettle();
+
+    await openTab(tester, 'Todos');
+    await tester.tap(find.text('Prepare deck').last);
+    await tester.pumpAndSettle();
+
+    // Subtask via the inline add field.
+    final addSubtask = find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.hintText == 'Add subtask',
+    );
+    expect(addSubtask, findsOneWidget);
+    await tester.enterText(addSubtask, 'Outline');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+
+    final subtasks = await db.select(db.subtasks).get();
+    expect(subtasks.single.title, 'Outline');
+    expect(subtasks.single.taskId, taskId);
+
+    // Tag via picker -> new tag.
+    await tester.tap(find.text('Add tag'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('New tag'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Tag name'),
+      'work',
+    );
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+    final pickerSave = find.text('Save').first;
+    await tester.ensureVisible(pickerSave);
+    await tester.pumpAndSettle();
+    await tester.tap(pickerSave);
+    await tester.pumpAndSettle();
+
+    final taskSave = find.text('Save').last;
+    await tester.ensureVisible(taskSave);
+    await tester.pumpAndSettle();
+    await tester.tap(taskSave);
+    await tester.pumpAndSettle();
+
+    final tags = await db.select(db.tags).get();
+    expect(tags.single.name, 'work');
+    final links = await db.select(db.taskTags).get();
+    expect(links.single.taskId, taskId);
+    expect(links.single.tagId, tags.single.id);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

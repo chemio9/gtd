@@ -3,6 +3,8 @@ import 'package:drift_flutter/drift_flutter.dart';
 
 import '../data/daos/board_dao.dart';
 import '../data/daos/event_dao.dart';
+import '../data/daos/subtask_dao.dart';
+import '../data/daos/tag_dao.dart';
 import '../data/daos/task_dao.dart';
 import 'tables.dart';
 
@@ -11,8 +13,8 @@ export 'tables.dart';
 part 'database.g.dart';
 
 @DriftDatabase(
-  tables: [Boards, BoardColumns, Tasks, Events],
-  daos: [BoardDao, TaskDao, EventDao],
+  tables: [Boards, BoardColumns, Tasks, Events, Subtasks, Tags, TaskTags],
+  daos: [BoardDao, TaskDao, EventDao, SubtaskDao, TagDao],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
@@ -21,7 +23,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -37,6 +39,12 @@ class AppDatabase extends _$AppDatabase {
       // v3: per-task reminders (minutes before the due time).
       if (from < 3) {
         await m.addColumn(tasks, tasks.reminderMinutesBefore);
+      }
+      // v4: subtasks, tags and the task <-> tag join table.
+      if (from < 4) {
+        await m.createTable(subtasks);
+        await m.createTable(tags);
+        await m.createTable(taskTags);
       }
     },
     beforeOpen: (details) async {

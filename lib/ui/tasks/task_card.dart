@@ -22,11 +22,15 @@ class TaskCard extends StatelessWidget {
     required this.task,
     this.isDragging = false,
     this.onTap,
+    this.tags = const [],
+    this.subtaskProgress,
   });
 
   final Task task;
   final bool isDragging;
   final VoidCallback? onTap;
+  final List<Tag> tags;
+  final ({int done, int total})? subtaskProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -102,12 +106,46 @@ class TaskCard extends StatelessWidget {
                   ],
                 ),
               ],
-              if (due != null || task.priority != TaskPriority.medium) ...[
+              if (tags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 4,
+                  runSpacing: 4,
+                  children: [
+                    for (final tag in tags.take(3))
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Color(tag.color).withValues(alpha: .18),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          tag.name,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Color(tag.color),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+              if (subtaskProgress != null || due != null ||
+                  task.priority != TaskPriority.medium) ...[
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 4,
                   children: [
+                    if (subtaskProgress case final progress?)
+                      _Chip(
+                        icon: Icons.checklist,
+                        label: '${progress.done}/${progress.total}',
+                        color: scheme.onSurfaceVariant,
+                        background: scheme.surfaceContainerHighest,
+                      ),
                     if (due != null)
                       _Chip(
                         icon: Icons.schedule,
@@ -192,6 +230,8 @@ class TaskTile extends StatelessWidget {
     this.endAction = SwipeAction.delete,
     this.onSwipeAction,
     this.hasLinkedEvent = false,
+    this.tags = const [],
+    this.subtaskProgress,
   });
 
   final Task task;
@@ -208,6 +248,9 @@ class TaskTile extends StatelessWidget {
 
   /// Shows a calendar badge: the task is linked to at least one event.
   final bool hasLinkedEvent;
+
+  final List<Tag> tags;
+  final ({int done, int total})? subtaskProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +282,7 @@ class TaskTile extends StatelessWidget {
             color: done ? scheme.onSurfaceVariant : null,
           ),
         ),
-        subtitle: due == null
+        subtitle: (due == null && tags.isEmpty && subtaskProgress == null)
             ? null
             : Padding(
                 padding: const EdgeInsets.only(top: 2),
@@ -251,14 +294,48 @@ class TaskTile extends StatelessWidget {
                       color: overdue ? scheme.error : scheme.onSurfaceVariant,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      formatDueLabel(due),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: overdue
-                            ? scheme.error
-                            : scheme.onSurfaceVariant,
+                    if (due != null)
+                      Text(
+                        formatDueLabel(due),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: overdue
+                              ? scheme.error
+                              : scheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
+                    if (subtaskProgress case final progress?) ...[
+                      if (due != null) const SizedBox(width: 8),
+                      Icon(
+                        Icons.checklist,
+                        size: 12,
+                        color: scheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${progress.done}/${progress.total}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    for (final tag in tags.take(2)) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        width: 6,
+                        height: 6,
+                        decoration: BoxDecoration(
+                          color: Color(tag.color),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        tag.name,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: Color(tag.color),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

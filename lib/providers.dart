@@ -18,6 +18,9 @@ final boardDaoProvider = Provider((ref) => ref.watch(databaseProvider).boardDao)
 final taskDaoProvider = Provider((ref) => ref.watch(databaseProvider).taskDao);
 final eventDaoProvider = Provider((ref) => ref.watch(databaseProvider).eventDao);
 
+final subtaskDaoProvider = Provider((ref) => ref.watch(databaseProvider).subtaskDao);
+final tagDaoProvider = Provider((ref) => ref.watch(databaseProvider).tagDao);
+
 final backupServiceProvider = Provider<BackupService>(
   (ref) => BackupService(ref.watch(databaseProvider)),
 );
@@ -154,6 +157,64 @@ class CalendarFocusedDay extends Notifier<DateTime> {
 
   void set(DateTime day) => state = dateOnly(day);
 }
+
+/// ---------------------------------------------------------------- subtasks
+final allSubtasksProvider = StreamProvider<List<Subtask>>((ref) {
+  return ref.watch(subtaskDaoProvider).watchAll();
+});
+
+final subtasksForTaskProvider = StreamProvider.family<List<Subtask>, int>((
+  ref,
+  taskId,
+) {
+  return ref.watch(subtaskDaoProvider).watchForTask(taskId);
+});
+
+/// `taskId -> (done, total)` used to badge task rows.
+final subtaskProgressProvider = Provider<Map<int, ({int done, int total})>>((
+  ref,
+) {
+  final subtasks = ref.watch(allSubtasksProvider).value ?? const <Subtask>[];
+  final progress = <int, ({int done, int total})>{};
+  for (final subtask in subtasks) {
+    final current = progress[subtask.taskId] ?? (done: 0, total: 0);
+    progress[subtask.taskId] = (
+      done: current.done + (subtask.isDone ? 1 : 0),
+      total: current.total + 1,
+    );
+  }
+  return progress;
+});
+
+/// -------------------------------------------------------------------- tags
+final tagsProvider = StreamProvider<List<Tag>>((ref) {
+  return ref.watch(tagDaoProvider).watchAll();
+});
+
+final tagsForTaskProvider = StreamProvider.family<List<Tag>, int>((
+  ref,
+  taskId,
+) {
+  return ref.watch(tagDaoProvider).watchForTask(taskId);
+});
+
+/// `taskId -> tags`, used to decorate task lists in one place.
+final taskTagsProvider = Provider<Map<int, List<Tag>>>((ref) {
+  final tags = ref.watch(tagsProvider).value ?? const <Tag>[];
+  final links = ref.watch(_taskTagLinksProvider).value ?? const <TaskTag>[];
+  final byId = {for (final tag in tags) tag.id: tag};
+  final byTask = <int, List<Tag>>{};
+  for (final link in links) {
+    final tag = byId[link.tagId];
+    if (tag == null) continue;
+    byTask.putIfAbsent(link.taskId, () => <Tag>[]).add(tag);
+  }
+  return byTask;
+});
+
+final _taskTagLinksProvider = StreamProvider<List<TaskTag>>((ref) {
+  return ref.watch(tagDaoProvider).watchAllLinks();
+});
 
 /// Every stored event row (series, not occurrences).
 final allEventsProvider = StreamProvider<List<Event>>((ref) {

@@ -40,6 +40,8 @@ class _BoardPageState extends ConsumerState<BoardPage> {
 
     final columnsAsync = ref.watch(boardColumnsProvider(board.id));
     final tasksAsync = ref.watch(boardTasksProvider(board.id));
+    final tagsByTask = ref.watch(taskTagsProvider);
+    final subtaskProgress = ref.watch(subtaskProgressProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -94,6 +96,8 @@ class _BoardPageState extends ConsumerState<BoardPage> {
             itemBuilder: (context, task, isDragging) => TaskCard(
               task: task,
               isDragging: isDragging,
+              tags: tagsByTask[task.id] ?? const [],
+              subtaskProgress: subtaskProgress[task.id],
             ),
             onItemTap: (task) =>
                 showTaskEditor(context, boardId: board.id, task: task),

@@ -56,6 +56,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
     final filter = ref.watch(todoFilterProvider);
     final settings = ref.watch(settingsProvider);
     final linkedEvents = ref.watch(linkedEventsByTaskProvider);
+    final tagsByTask = ref.watch(taskTagsProvider);
+    final subtaskProgress = ref.watch(subtaskProgressProvider);
     final filterNotifier = ref.read(todoFilterProvider.notifier);
     final board = ref.watch(activeBoardProvider);
     final isLoading = ref.watch(allTasksProvider).isLoading;
@@ -161,6 +163,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                         for (final task in entry.value)
                           TaskTile(
                             task: task,
+                            tags: tagsByTask[task.id] ?? const [],
+                            subtaskProgress: subtaskProgress[task.id],
                             hasLinkedEvent:
                                 (linkedEvents[task.id] ?? const []).isNotEmpty,
                             startAction: settings.swipeStart,

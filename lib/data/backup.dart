@@ -11,17 +11,22 @@ class BackupImportResult {
     required this.columns,
     required this.tasks,
     required this.events,
+    this.subtasks = 0,
+    this.tags = 0,
   });
 
   final int boards;
   final int columns;
   final int tasks;
   final int events;
+  final int subtasks;
+  final int tags;
 
-  int get total => boards + columns + tasks + events;
+  int get total => boards + columns + tasks + events + subtasks + tags;
 
   String get summary =>
-      '$boards board(s), $columns column(s), $tasks task(s), $events event(s)';
+      '$boards board(s), $columns column(s), $tasks task(s), $events event(s), '
+      '$subtasks subtask(s), $tags tag(s)';
 }
 
 /// JSON import/export of the whole database.
@@ -42,6 +47,9 @@ class BackupService {
     final columns = await _db.select(_db.boardColumns).get();
     final tasks = await _db.select(_db.tasks).get();
     final events = await _db.select(_db.events).get();
+    final subtasks = await _db.select(_db.subtasks).get();
+    final tags = await _db.select(_db.tags).get();
+    final taskTags = await _db.select(_db.taskTags).get();
 
     return {
       'app': appTag,
@@ -82,6 +90,30 @@ class BackupService {
             'createdAt': task.createdAt.toIso8601String(),
             'updatedAt': task.updatedAt.toIso8601String(),
           },
+      ],
+      'subtasks': [
+        for (final subtask in subtasks)
+          {
+            'id': subtask.id,
+            'taskId': subtask.taskId,
+            'title': subtask.title,
+            'isDone': subtask.isDone,
+            'position': subtask.position,
+            'createdAt': subtask.createdAt.toIso8601String(),
+          },
+      ],
+      'tags': [
+        for (final tag in tags)
+          {
+            'id': tag.id,
+            'name': tag.name,
+            'color': tag.color,
+            'createdAt': tag.createdAt.toIso8601String(),
+          },
+      ],
+      'taskTags': [
+        for (final link in taskTags)
+          {'taskId': link.taskId, 'tagId': link.tagId},
       ],
       'events': [
         for (final event in events)
@@ -124,9 +156,15 @@ class BackupService {
     final columns = _list(decoded['columns']);
     final tasks = _list(decoded['tasks']);
     final events = _list(decoded['events']);
+    final subtasks = _list(decoded['subtasks']);
+    final tags = _list(decoded['tags']);
+    final taskTags = _list(decoded['taskTags']);
 
     await _db.transaction(() async {
       if (replace) {
+        await _db.delete(_db.taskTags).go();
+        await _db.delete(_db.subtasks).go();
+        await _db.delete(_db.tags).go();
         await _db.delete(_db.events).go();
         await _db.delete(_db.tasks).go();
         await _db.delete(_db.boardColumns).go();
@@ -188,6 +226,45 @@ class BackupService {
               mode: InsertMode.insertOrReplace,
             );
       }
+      for (final json in tags) {
+        await _db
+            .into(_db.tags)
+            .insert(
+              TagsCompanion(
+                id: Value(_int(json['id'])),
+                name: Value(_string(json['name'], 'tag')),
+                color: Value(_int(json['color'])),
+                createdAt: Value(_date(json['createdAt']) ?? DateTime.now()),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
+      for (final json in subtasks) {
+        await _db
+            .into(_db.subtasks)
+            .insert(
+              SubtasksCompanion(
+                id: Value(_int(json['id'])),
+                taskId: Value(_int(json['taskId'])),
+                title: Value(_string(json['title'], 'Subtask')),
+                isDone: Value(json['isDone'] as bool? ?? false),
+                position: Value(_int(json['position'])),
+                createdAt: Value(_date(json['createdAt']) ?? DateTime.now()),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
+      for (final json in taskTags) {
+        await _db
+            .into(_db.taskTags)
+            .insert(
+              TaskTagsCompanion(
+                taskId: Value(_int(json['taskId'])),
+                tagId: Value(_int(json['tagId'])),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+      }
       for (final json in events) {
         await _db
             .into(_db.events)
@@ -220,6 +297,8 @@ class BackupService {
       columns: columns.length,
       tasks: tasks.length,
       events: events.length,
+      subtasks: subtasks.length,
+      tags: tags.length,
     );
   }
 

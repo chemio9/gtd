@@ -118,3 +118,42 @@ class Events extends Table {
   DateTimeColumn get recurrenceUntil => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
+
+/// One level of checkable steps inside a task.
+@DataClassName('Subtask')
+class Subtasks extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get taskId =>
+      integer().references(Tasks, #id, onDelete: KeyAction.cascade)();
+  TextColumn get title => text().withLength(min: 1, max: 200)();
+  BoolColumn get isDone => boolean().withDefault(const Constant(false))();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+}
+
+/// Global tag, reusable across boards.
+@DataClassName('Tag')
+class Tags extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text().withLength(min: 1, max: 40)();
+
+  /// ARGB colour used for the chip.
+  IntColumn get color => integer().withDefault(const Constant(0xFF4F46E5))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {name},
+  ];
+}
+
+@DataClassName('TaskTag')
+class TaskTags extends Table {
+  IntColumn get taskId =>
+      integer().references(Tasks, #id, onDelete: KeyAction.cascade)();
+  IntColumn get tagId =>
+      integer().references(Tags, #id, onDelete: KeyAction.cascade)();
+
+  @override
+  Set<Column> get primaryKey => {taskId, tagId};
+}

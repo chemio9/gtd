@@ -7,6 +7,7 @@ import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../calendar/event_editor_sheet.dart';
+import 'task_metadata_section.dart';
 
 /// Opens the create/edit sheet for a task.
 ///
@@ -68,6 +69,8 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   late int? _columnId = widget.task?.columnId ?? widget.initialColumnId;
   late bool _completed = widget.task?.completedAt != null;
   late int? _reminder = widget.task?.reminderMinutesBefore;
+  Set<int> _tagIds = {};
+  final List<String> _pendingSubtasks = [];
   bool _saving = false;
 
   bool get _isEditing => widget.task != null;
@@ -89,6 +92,22 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         TaskPriority.high => context.l10n.taskPriorityHigh,
         TaskPriority.urgent => context.l10n.taskPriorityUrgent,
       };
+
+  @override
+  void initState() {
+    super.initState();
+    final taskId = widget.task?.id;
+    if (taskId == null) return;
+    ref
+        .read(tagDaoProvider)
+        .watchForTask(taskId)
+        .first
+        .then((tags) {
+          if (!mounted) return;
+          setState(() => _tagIds = tags.map((tag) => tag.id).toSet());
+        })
+        .catchError((Object _) {});
+  }
 
   @override
   void dispose() {
@@ -152,6 +171,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         const <BoardColumn>[];
     final columnId = _columnId ?? (columns.isEmpty ? null : columns.first.id);
 
+    final tagDao = ref.read(tagDaoProvider);
+    final subtaskDao = ref.read(subtaskDaoProvider);
+
     if (_isEditing) {
       final task = widget.task!;
       await dao.updateTask(
@@ -169,8 +191,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               : const Value(null),
         ),
       );
+      await tagDao.setForTask(task.id, _tagIds);
     } else {
-      await dao.createTask(
+      final id = await dao.createTask(
         title: title,
         notes: notes.isEmpty ? null : notes,
         boardId: widget.boardId,
@@ -179,6 +202,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
         reminderMinutesBefore: _reminder,
         priority: _priority,
       );
+      await tagDao.setForTask(id, _tagIds);
+      for (final subtaskTitle in _pendingSubtasks) {
+        await subtaskDao.add(taskId: id, title: subtaskTitle);
+      }
     }
 
     if (!mounted) return;
@@ -382,6 +409,23 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 onChanged: (value) => setState(() => _columnId = value),
               ),
             ],
+            const SizedBox(height: 16),
+            TaskTagsEditor(
+              selectedTagIds: _tagIds,
+              onChanged: (ids) => setState(() => _tagIds = ids),
+            ),
+            const SizedBox(height: 16),
+            if (_isEditing)
+              LiveSubtasksEditor(taskId: widget.task!.id)
+            else
+              PendingSubtasksEditor(
+                titles: _pendingSubtasks,
+                onChanged: (titles) => setState(() {
+                  _pendingSubtasks
+                    ..clear()
+                    ..addAll(titles);
+                }),
+              ),
             if (_isEditing) ...[
               const SizedBox(height: 8),
               SwitchListTile(
