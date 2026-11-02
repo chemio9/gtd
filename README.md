@@ -232,6 +232,17 @@ cp ~/.pub-cache/hosted/*/drift-*/drift_worker.js web/
 cp ~/.pub-cache/hosted/*/drift-*/extension/devtools/build/sqlite3.wasm web/
 ```
 
+## Documentation
+
+Deeper material lives in [`docs/`](docs/):
+
+| File | What it covers |
+|---|---|
+| [docs/DESIGN.md](docs/DESIGN.md) | Scope, architecture, schema, state management, platform seams, every design decision with rationale and rejected alternatives |
+| [docs/EDGE-CASES.md](docs/EDGE-CASES.md) | Handled corner cases by domain (dates, recurrence, quick add, kanban, completion, subtasks/tags, reminders, calendar sync, backup, migrations, i18n, search, platform) |
+| [docs/PROBLEMS.md](docs/PROBLEMS.md) | 26 real bugs/build failures: symptom → root cause → fix → lesson |
+| [docs/TESTING.md](docs/TESTING.md) | Test strategy, harness patterns, inventory and coverage gaps |
+
 ## Tests
 
 ```bash

@@ -37,6 +37,12 @@ Notes:
   Adding `android/key.properties` switches it to the upload key.
 - Report back: device serial, APK size and the package id (`io.github.chemio9.gtd`).
 
+## Docs
+
+`docs/DESIGN.md` (decisions), `docs/EDGE-CASES.md` (corner cases),
+`docs/PROBLEMS.md` (bug journal), `docs/TESTING.md` (test patterns). Update them
+when a decision or invariant changes.
+
 ## Conventions
 
 - Conventional Commits, and every commit ends with:
