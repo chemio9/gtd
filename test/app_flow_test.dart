@@ -815,6 +815,28 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('calendar format button shows the current view', (tester) async {
+    await pumpApp(tester);
+    await openTab(tester, 'Calendar');
+    await tester.pumpAndSettle();
+
+    // Month view is active: the button must say "Month", not the next format.
+    expect(find.text('Month'), findsOneWidget);
+    expect(find.text('2 weeks'), findsNothing);
+
+    await tester.tap(find.text('Month'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 weeks'), findsOneWidget);
+    expect(find.text('Month'), findsNothing);
+
+    await tester.tap(find.text('2 weeks'));
+    await tester.pumpAndSettle();
+    expect(find.text('Week'), findsOneWidget);
+    expect(find.text('2 weeks'), findsNothing);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 

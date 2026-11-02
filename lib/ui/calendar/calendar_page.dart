@@ -155,6 +155,9 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
               markersMaxCount: 3,
             ),
             headerStyle: HeaderStyle(
+              // The button toggles between formats; label it with the view
+              // that is currently displayed instead of the next one.
+              formatButtonShowsNext: false,
               formatButtonDecoration: BoxDecoration(
                 border: Border.all(color: theme.colorScheme.outlineVariant),
                 borderRadius: BorderRadius.circular(8),
