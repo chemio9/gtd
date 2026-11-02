@@ -147,6 +147,8 @@ Map<DateTime, List<EventOccurrence>> bucketByDay(
 EventsCompanion eventCompanion({
   String? title,
   String? notes,
+  int? linkedTaskId,
+  bool clearLinkedTask = false,
   DateTime? startsAt,
   DateTime? endsAt,
   bool? allDay,
@@ -158,6 +160,11 @@ EventsCompanion eventCompanion({
   return EventsCompanion(
     title: title == null ? const Value.absent() : Value(title),
     notes: notes == null ? const Value.absent() : Value(notes),
+    linkedTaskId: clearLinkedTask
+        ? const Value(null)
+        : linkedTaskId == null
+        ? const Value.absent()
+        : Value(linkedTaskId),
     startsAt: startsAt == null ? const Value.absent() : Value(startsAt),
     endsAt: endsAt == null ? const Value.absent() : Value(endsAt),
     allDay: allDay == null ? const Value.absent() : Value(allDay),

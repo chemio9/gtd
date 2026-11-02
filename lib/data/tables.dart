@@ -99,6 +99,11 @@ class Events extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get title => text().withLength(min: 1, max: 200)();
   TextColumn get notes => text().nullable()();
+
+  /// Optional task this event belongs to (meeting about a task, deadline…).
+  IntColumn get linkedTaskId => integer()
+      .nullable()
+      .references(Tasks, #id, onDelete: KeyAction.setNull)();
   DateTimeColumn get startsAt => dateTime()();
   DateTimeColumn get endsAt => dateTime()();
   BoolColumn get allDay => boolean().withDefault(const Constant(false))();

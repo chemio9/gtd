@@ -184,6 +184,7 @@ class TaskTile extends StatelessWidget {
     this.startAction = SwipeAction.toggleComplete,
     this.endAction = SwipeAction.delete,
     this.onSwipeAction,
+    this.hasLinkedEvent = false,
   });
 
   final Task task;
@@ -197,6 +198,9 @@ class TaskTile extends StatelessWidget {
   final SwipeAction endAction;
 
   final ValueChanged<SwipeAction>? onSwipeAction;
+
+  /// Shows a calendar badge: the task is linked to at least one event.
+  final bool hasLinkedEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -251,15 +255,30 @@ class TaskTile extends StatelessWidget {
                   ],
                 ),
               ),
-        trailing: task.priority == TaskPriority.medium
+        trailing: (task.priority == TaskPriority.medium && !hasLinkedEvent)
             ? null
-            : Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: priorityColor(context, task.priority),
-                  shape: BoxShape.circle,
-                ),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasLinkedEvent)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Icon(
+                        Icons.event_outlined,
+                        size: 16,
+                        color: scheme.tertiary,
+                      ),
+                    ),
+                  if (task.priority != TaskPriority.medium)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: priorityColor(context, task.priority),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
               ),
       ),
     );

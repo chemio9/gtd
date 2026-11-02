@@ -76,6 +76,16 @@ void main() {
     );
   }
 
+  Future<int> addTask(String title) async {
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    return db.taskDao.createTask(
+      title: title,
+      boardId: board.id,
+      columnId: column!.id,
+    );
+  }
+
   Future<CalendarSyncResult> runSync() =>
       sync.sync(calendarId: calendarId, timeZone: 'Europe/Berlin');
 
@@ -172,6 +182,27 @@ void main() {
       gateway.events.values.single.rrule,
       'FREQ=WEEKLY;BYDAY=MO,WE;UNTIL=20261231T235959Z',
     );
+  });
+
+  test('the device description mentions the linked task', () async {
+    final taskId = await addTask('Prepare deck');
+    final eventId = await addEvent(title: 'Design review', notes: 'Agenda');
+    await db.eventDao.linkTask(eventId, taskId);
+
+    await runSync();
+
+    expect(
+      gateway.events.values.single.description,
+      'Agenda\n\nTask: Prepare deck',
+    );
+  });
+
+  test('notes without a link stay untouched', () async {
+    await addEvent(title: 'Lunch', notes: 'Bring the slides');
+
+    await runSync();
+
+    expect(gateway.events.values.single.description, 'Bring the slides');
   });
 
   test('failed inserts are reported and not mapped', () async {

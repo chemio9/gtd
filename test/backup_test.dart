@@ -30,7 +30,7 @@ void main() {
       (await source.taskDao.taskById(taskId))!,
       completed: true,
     );
-    await source.eventDao.createEvent(
+    final eventId = await source.eventDao.createEvent(
       EventsCompanion.insert(
         title: 'Team sync',
         startsAt: DateTime(2026, 11, 2, 9),
@@ -40,6 +40,7 @@ void main() {
         recurrenceUntil: Value(DateTime(2026, 12, 31)),
       ),
     );
+    await source.eventDao.linkTask(eventId, taskId);
     return source;
   }
 
@@ -90,6 +91,8 @@ void main() {
     expect(events.single.recurrence, RecurrenceFrequency.weekly);
     expect(events.single.byWeekday, 'mo,we');
     expect(events.single.recurrenceUntil, DateTime(2026, 12, 31));
+    // The event -> task link survives the round trip.
+    expect(events.single.linkedTaskId, task.id);
   });
 
   test('import replaces existing content', () async {

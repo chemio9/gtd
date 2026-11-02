@@ -54,6 +54,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
     final groups = ref.watch(groupedTodosProvider);
     final filter = ref.watch(todoFilterProvider);
     final settings = ref.watch(settingsProvider);
+    final linkedEvents = ref.watch(linkedEventsByTaskProvider);
     final filterNotifier = ref.read(todoFilterProvider.notifier);
     final board = ref.watch(activeBoardProvider);
     final isLoading = ref.watch(allTasksProvider).isLoading;
@@ -158,6 +159,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                         for (final task in entry.value)
                           TaskTile(
                             task: task,
+                            hasLinkedEvent:
+                                (linkedEvents[task.id] ?? const []).isNotEmpty,
                             startAction: settings.swipeStart,
                             endAction: settings.swipeEnd,
                             onToggle: (value) => ref

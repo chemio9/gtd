@@ -10,20 +10,31 @@ Future<bool?> showEventEditor(
   BuildContext context, {
   Event? event,
   DateTime? initialDay,
+  int? initialLinkedTaskId,
 }) {
   return showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => EventEditorSheet(event: event, initialDay: initialDay),
+    builder: (_) => EventEditorSheet(
+      event: event,
+      initialDay: initialDay,
+      initialLinkedTaskId: initialLinkedTaskId,
+    ),
   );
 }
 
 class EventEditorSheet extends ConsumerStatefulWidget {
-  const EventEditorSheet({super.key, this.event, this.initialDay});
+  const EventEditorSheet({
+    super.key,
+    this.event,
+    this.initialDay,
+    this.initialLinkedTaskId,
+  });
 
   final Event? event;
   final DateTime? initialDay;
+  final int? initialLinkedTaskId;
 
   @override
   ConsumerState<EventEditorSheet> createState() => _EventEditorSheetState();
@@ -48,6 +59,8 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
   late Set<WeekdayCode> _weekdays =
       WeekdayCodeX.parse(widget.event?.byWeekday).toSet();
   late DateTime? _until = widget.event?.recurrenceUntil;
+  late int? _linkedTaskId =
+      widget.event?.linkedTaskId ?? widget.initialLinkedTaskId;
 
   bool get _isEditing => widget.event != null;
 
@@ -128,6 +141,20 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
     setState(() => _until = dateOnly(day));
   }
 
+  Future<void> _pickTask() async {
+    final choice = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _TaskPickerSheet(
+        tasks: ref.read(allTasksProvider).value ?? const <Task>[],
+        selectedTaskId: _linkedTaskId,
+      ),
+    );
+    if (choice == null || !mounted) return;
+    setState(() => _linkedTaskId = choice < 0 ? null : choice);
+  }
+
   Future<void> _save() async {
     final title = _title.text.trim();
     if (title.isEmpty) return;
@@ -148,6 +175,8 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
         eventCompanion(
           title: title,
           notes: notes.isEmpty ? null : notes,
+          linkedTaskId: _linkedTaskId,
+          clearLinkedTask: _linkedTaskId == null,
           startsAt: start,
           endsAt: end,
           allDay: _allDay,
@@ -167,6 +196,7 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
         eventCompanion(
           title: title,
           notes: notes.isEmpty ? null : notes,
+          linkedTaskId: _linkedTaskId,
           startsAt: start,
           endsAt: end,
           allDay: _allDay,
@@ -254,6 +284,12 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
                 labelText: 'Notes',
                 border: OutlineInputBorder(),
               ),
+            ),
+            const SizedBox(height: 12),
+            _LinkedTaskRow(
+              taskId: _linkedTaskId,
+              onPick: _pickTask,
+              onClear: () => setState(() => _linkedTaskId = null),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
@@ -422,6 +458,137 @@ class _DateTimeRow extends StatelessWidget {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Row that shows the linked task and opens the picker.
+class _LinkedTaskRow extends ConsumerWidget {
+  const _LinkedTaskRow({
+    required this.taskId,
+    required this.onPick,
+    required this.onClear,
+  });
+
+  final int? taskId;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
+    final linked = taskId == null
+        ? null
+        : tasks.where((task) => task.id == taskId).firstOrNull;
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onPick,
+            icon: Icon(linked == null ? Icons.link : Icons.link_off),
+            label: Text(
+              linked == null ? 'Link a task' : linked.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        if (linked != null)
+          IconButton(
+            tooltip: 'Unlink task',
+            onPressed: onClear,
+            icon: const Icon(Icons.close),
+          ),
+      ],
+    );
+  }
+}
+
+/// Bottom sheet listing tasks to link, with `-1` meaning "remove link".
+class _TaskPickerSheet extends StatefulWidget {
+  const _TaskPickerSheet({required this.tasks, this.selectedTaskId});
+
+  final List<Task> tasks;
+  final int? selectedTaskId;
+
+  @override
+  State<_TaskPickerSheet> createState() => _TaskPickerSheetState();
+}
+
+class _TaskPickerSheetState extends State<_TaskPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final query = _query.toLowerCase();
+    final tasks = widget.tasks
+        .where((task) => task.completedAt == null)
+        .where((task) => query.isEmpty || task.title.toLowerCase().contains(query))
+        .toList();
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.viewInsetsOf(context).bottom + 12,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Link to a task', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 8),
+            TextField(
+              autofocus: false,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                hintText: 'Search tasks',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.link_off),
+                    title: const Text('No task'),
+                    selected: widget.selectedTaskId == null,
+                    onTap: () => Navigator.pop(context, -1),
+                  ),
+                  for (final task in tasks)
+                    ListTile(
+                      leading: Icon(
+                        task.id == widget.selectedTaskId
+                            ? Icons.radio_button_checked
+                            : Icons.radio_button_unchecked,
+                      ),
+                      title: Text(
+                        task.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: task.dueDate == null
+                          ? null
+                          : Text(formatDueLabel(task.dueDate!)),
+                      onTap: () => Navigator.pop(context, task.id),
+                    ),
+                  if (tasks.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No matching tasks'),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

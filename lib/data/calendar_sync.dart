@@ -99,6 +99,8 @@ class CalendarSyncService {
     required String timeZone,
   }) async {
     final events = await _db.select(_db.events).get();
+    final tasks = await _db.select(_db.tasks).get();
+    final taskTitles = {for (final task in tasks) task.id: task.title};
     final mapping = {..._mapping.read()};
     var created = 0;
     var updated = 0;
@@ -109,7 +111,10 @@ class CalendarSyncService {
       final payload = DeviceCalendarEvent(
         calendarId: calendarId,
         title: event.title,
-        description: event.notes,
+        description: _description(
+          event.notes,
+          event.linkedTaskId == null ? null : taskTitles[event.linkedTaskId],
+        ),
         start: event.startsAt,
         end: event.endsAt,
         allDay: event.allDay,
@@ -172,6 +177,16 @@ class CalendarSyncService {
     await _mapping.write({});
     return deleted;
   }
+}
+
+/// Merges free-text notes with the linked task, so the device calendar shows
+/// what the event is about.
+String? _description(String? notes, String? taskTitle) {
+  final parts = [
+    if (notes != null && notes.trim().isNotEmpty) notes.trim(),
+    if (taskTitle != null && taskTitle.trim().isNotEmpty) 'Task: $taskTitle',
+  ];
+  return parts.isEmpty ? null : parts.join('\n\n');
 }
 
 /// `RRULE` string understood by Android's CalendarContract.

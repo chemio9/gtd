@@ -1346,6 +1346,20 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _linkedTaskIdMeta = const VerificationMeta(
+    'linkedTaskId',
+  );
+  @override
+  late final GeneratedColumn<int> linkedTaskId = GeneratedColumn<int>(
+    'linked_task_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tasks (id) ON DELETE SET NULL',
+    ),
+  );
   static const VerificationMeta _startsAtMeta = const VerificationMeta(
     'startsAt',
   );
@@ -1429,6 +1443,7 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     id,
     title,
     notes,
+    linkedTaskId,
     startsAt,
     endsAt,
     allDay,
@@ -1464,6 +1479,15 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('linked_task_id')) {
+      context.handle(
+        _linkedTaskIdMeta,
+        linkedTaskId.isAcceptableOrUnknown(
+          data['linked_task_id']!,
+          _linkedTaskIdMeta,
+        ),
       );
     }
     if (data.containsKey('starts_at')) {
@@ -1530,6 +1554,10 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      linkedTaskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}linked_task_id'],
+      ),
       startsAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}starts_at'],
@@ -1578,6 +1606,9 @@ class Event extends DataClass implements Insertable<Event> {
   final int id;
   final String title;
   final String? notes;
+
+  /// Optional task this event belongs to (meeting about a task, deadline…).
+  final int? linkedTaskId;
   final DateTime startsAt;
   final DateTime endsAt;
   final bool allDay;
@@ -1591,6 +1622,7 @@ class Event extends DataClass implements Insertable<Event> {
     required this.id,
     required this.title,
     this.notes,
+    this.linkedTaskId,
     required this.startsAt,
     required this.endsAt,
     required this.allDay,
@@ -1606,6 +1638,9 @@ class Event extends DataClass implements Insertable<Event> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || linkedTaskId != null) {
+      map['linked_task_id'] = Variable<int>(linkedTaskId);
     }
     map['starts_at'] = Variable<DateTime>(startsAt);
     map['ends_at'] = Variable<DateTime>(endsAt);
@@ -1632,6 +1667,9 @@ class Event extends DataClass implements Insertable<Event> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      linkedTaskId: linkedTaskId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedTaskId),
       startsAt: Value(startsAt),
       endsAt: Value(endsAt),
       allDay: Value(allDay),
@@ -1655,6 +1693,7 @@ class Event extends DataClass implements Insertable<Event> {
       id: serializer.fromJson<int>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       notes: serializer.fromJson<String?>(json['notes']),
+      linkedTaskId: serializer.fromJson<int?>(json['linkedTaskId']),
       startsAt: serializer.fromJson<DateTime>(json['startsAt']),
       endsAt: serializer.fromJson<DateTime>(json['endsAt']),
       allDay: serializer.fromJson<bool>(json['allDay']),
@@ -1673,6 +1712,7 @@ class Event extends DataClass implements Insertable<Event> {
       'id': serializer.toJson<int>(id),
       'title': serializer.toJson<String>(title),
       'notes': serializer.toJson<String?>(notes),
+      'linkedTaskId': serializer.toJson<int?>(linkedTaskId),
       'startsAt': serializer.toJson<DateTime>(startsAt),
       'endsAt': serializer.toJson<DateTime>(endsAt),
       'allDay': serializer.toJson<bool>(allDay),
@@ -1689,6 +1729,7 @@ class Event extends DataClass implements Insertable<Event> {
     int? id,
     String? title,
     Value<String?> notes = const Value.absent(),
+    Value<int?> linkedTaskId = const Value.absent(),
     DateTime? startsAt,
     DateTime? endsAt,
     bool? allDay,
@@ -1700,6 +1741,7 @@ class Event extends DataClass implements Insertable<Event> {
     id: id ?? this.id,
     title: title ?? this.title,
     notes: notes.present ? notes.value : this.notes,
+    linkedTaskId: linkedTaskId.present ? linkedTaskId.value : this.linkedTaskId,
     startsAt: startsAt ?? this.startsAt,
     endsAt: endsAt ?? this.endsAt,
     allDay: allDay ?? this.allDay,
@@ -1715,6 +1757,9 @@ class Event extends DataClass implements Insertable<Event> {
       id: data.id.present ? data.id.value : this.id,
       title: data.title.present ? data.title.value : this.title,
       notes: data.notes.present ? data.notes.value : this.notes,
+      linkedTaskId: data.linkedTaskId.present
+          ? data.linkedTaskId.value
+          : this.linkedTaskId,
       startsAt: data.startsAt.present ? data.startsAt.value : this.startsAt,
       endsAt: data.endsAt.present ? data.endsAt.value : this.endsAt,
       allDay: data.allDay.present ? data.allDay.value : this.allDay,
@@ -1735,6 +1780,7 @@ class Event extends DataClass implements Insertable<Event> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
+          ..write('linkedTaskId: $linkedTaskId, ')
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
@@ -1751,6 +1797,7 @@ class Event extends DataClass implements Insertable<Event> {
     id,
     title,
     notes,
+    linkedTaskId,
     startsAt,
     endsAt,
     allDay,
@@ -1766,6 +1813,7 @@ class Event extends DataClass implements Insertable<Event> {
           other.id == this.id &&
           other.title == this.title &&
           other.notes == this.notes &&
+          other.linkedTaskId == this.linkedTaskId &&
           other.startsAt == this.startsAt &&
           other.endsAt == this.endsAt &&
           other.allDay == this.allDay &&
@@ -1779,6 +1827,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
   final Value<int> id;
   final Value<String> title;
   final Value<String?> notes;
+  final Value<int?> linkedTaskId;
   final Value<DateTime> startsAt;
   final Value<DateTime> endsAt;
   final Value<bool> allDay;
@@ -1790,6 +1839,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.notes = const Value.absent(),
+    this.linkedTaskId = const Value.absent(),
     this.startsAt = const Value.absent(),
     this.endsAt = const Value.absent(),
     this.allDay = const Value.absent(),
@@ -1802,6 +1852,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     this.id = const Value.absent(),
     required String title,
     this.notes = const Value.absent(),
+    this.linkedTaskId = const Value.absent(),
     required DateTime startsAt,
     required DateTime endsAt,
     this.allDay = const Value.absent(),
@@ -1816,6 +1867,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Expression<int>? id,
     Expression<String>? title,
     Expression<String>? notes,
+    Expression<int>? linkedTaskId,
     Expression<DateTime>? startsAt,
     Expression<DateTime>? endsAt,
     Expression<bool>? allDay,
@@ -1828,6 +1880,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       if (id != null) 'id': id,
       if (title != null) 'title': title,
       if (notes != null) 'notes': notes,
+      if (linkedTaskId != null) 'linked_task_id': linkedTaskId,
       if (startsAt != null) 'starts_at': startsAt,
       if (endsAt != null) 'ends_at': endsAt,
       if (allDay != null) 'all_day': allDay,
@@ -1842,6 +1895,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Value<int>? id,
     Value<String>? title,
     Value<String?>? notes,
+    Value<int?>? linkedTaskId,
     Value<DateTime>? startsAt,
     Value<DateTime>? endsAt,
     Value<bool>? allDay,
@@ -1854,6 +1908,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       id: id ?? this.id,
       title: title ?? this.title,
       notes: notes ?? this.notes,
+      linkedTaskId: linkedTaskId ?? this.linkedTaskId,
       startsAt: startsAt ?? this.startsAt,
       endsAt: endsAt ?? this.endsAt,
       allDay: allDay ?? this.allDay,
@@ -1875,6 +1930,9 @@ class EventsCompanion extends UpdateCompanion<Event> {
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (linkedTaskId.present) {
+      map['linked_task_id'] = Variable<int>(linkedTaskId.value);
     }
     if (startsAt.present) {
       map['starts_at'] = Variable<DateTime>(startsAt.value);
@@ -1908,6 +1966,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('notes: $notes, ')
+          ..write('linkedTaskId: $linkedTaskId, ')
           ..write('startsAt: $startsAt, ')
           ..write('endsAt: $endsAt, ')
           ..write('allDay: $allDay, ')
@@ -1962,6 +2021,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('tasks', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('events', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -2793,6 +2859,25 @@ final class $$TasksTableReferences
       manager.$state.copyWith(prefetchedData: [item]),
     );
   }
+
+  static MultiTypedResultKey<$EventsTable, List<Event>> _eventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.events,
+    aliasName: 'tasks__id__events__linked_task_id',
+  );
+
+  $$EventsTableProcessedTableManager get eventsRefs {
+    final manager = $$EventsTableTableManager(
+      $_db,
+      $_db.events,
+    ).filter((f) => f.linkedTaskId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_eventsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
 }
 
 class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
@@ -2893,6 +2978,31 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
           ),
     );
     return composer;
+  }
+
+  Expression<bool> eventsRefs(
+    Expression<bool> Function($$EventsTableFilterComposer f) f,
+  ) {
+    final $$EventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.events,
+      getReferencedColumn: (t) => t.linkedTaskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EventsTableFilterComposer(
+            $db: $db,
+            $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -3080,6 +3190,31 @@ class $$TasksTableAnnotationComposer
     );
     return composer;
   }
+
+  Expression<T> eventsRefs<T extends Object>(
+    Expression<T> Function($$EventsTableAnnotationComposer a) f,
+  ) {
+    final $$EventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.events,
+      getReferencedColumn: (t) => t.linkedTaskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$EventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableTableManager
@@ -3095,7 +3230,7 @@ class $$TasksTableTableManager
           $$TasksTableUpdateCompanionBuilder,
           (Task, $$TasksTableReferences),
           Task,
-          PrefetchHooks Function({bool boardId, bool columnId})
+          PrefetchHooks Function({bool boardId, bool columnId, bool eventsRefs})
         > {
   $$TasksTableTableManager(_$AppDatabase db, $TasksTable table)
     : super(
@@ -3168,58 +3303,74 @@ class $$TasksTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({boardId = false, columnId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (boardId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.boardId,
-                        referencedTable: $$TasksTableReferences._boardIdTable(
-                          db,
-                        ),
-                        referencedColumn: $$TasksTableReferences
-                            ._boardIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-                    if (columnId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.columnId,
-                        referencedTable: $$TasksTableReferences._columnIdTable(
-                          db,
-                        ),
-                        referencedColumn: $$TasksTableReferences
-                            ._columnIdTable(db)
-                            .id,
-                      ) as T;
-                    }
+          prefetchHooksCallback:
+              ({boardId = false, columnId = false, eventsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (eventsRefs) db.events],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (boardId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.boardId,
+                            referencedTable: $$TasksTableReferences
+                                ._boardIdTable(db),
+                            referencedColumn: $$TasksTableReferences
+                                ._boardIdTable(db)
+                                .id,
+                          ) as T;
+                        }
+                        if (columnId) {
+                          state = state.withJoin(
+                            currentTable: table,
+                            currentColumn: table.columnId,
+                            referencedTable: $$TasksTableReferences
+                                ._columnIdTable(db),
+                            referencedColumn: $$TasksTableReferences
+                                ._columnIdTable(db)
+                                .id,
+                          ) as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (eventsRefs)
+                        await $_getPrefetchedDataByColumns<
+                          Task,
+                          $TasksTable,
+                          Event,
+                          $EventsTable
+                        >(
+                          currentTable: table,
+                          referencedTable: $$TasksTableReferences
+                              ._eventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TasksTableReferences(db, table, p0).eventsRefs,
+                          currentColumn: 'id',
+                          referencedColumn: 'linked_task_id',
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -3236,12 +3387,13 @@ typedef $$TasksTableProcessedTableManager =
       $$TasksTableUpdateCompanionBuilder,
       (Task, $$TasksTableReferences),
       Task,
-      PrefetchHooks Function({bool boardId, bool columnId})
+      PrefetchHooks Function({bool boardId, bool columnId, bool eventsRefs})
     >;
 typedef $$EventsTableCreateCompanionBuilder = EventsCompanion Function({
   Value<int> id,
   required String title,
   Value<String?> notes,
+  Value<int?> linkedTaskId,
   required DateTime startsAt,
   required DateTime endsAt,
   Value<bool> allDay,
@@ -3254,6 +3406,7 @@ typedef $$EventsTableUpdateCompanionBuilder = EventsCompanion Function({
   Value<int> id,
   Value<String> title,
   Value<String?> notes,
+  Value<int?> linkedTaskId,
   Value<DateTime> startsAt,
   Value<DateTime> endsAt,
   Value<bool> allDay,
@@ -3262,6 +3415,28 @@ typedef $$EventsTableUpdateCompanionBuilder = EventsCompanion Function({
   Value<DateTime?> recurrenceUntil,
   Value<DateTime> createdAt,
 });
+
+final class $$EventsTableReferences
+    extends BaseReferences<_$AppDatabase, $EventsTable, Event> {
+  $$EventsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TasksTable _linkedTaskIdTable(_$AppDatabase db) =>
+      db.tasks.createAlias('events__linked_task_id__tasks__id');
+
+  $$TasksTableProcessedTableManager? get linkedTaskId {
+    final $_column = $_itemColumn<int>('linked_task_id');
+    if ($_column == null) return null;
+    final manager = $$TasksTableTableManager(
+      $_db,
+      $_db.tasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_linkedTaskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
 
 class $$EventsTableFilterComposer
     extends Composer<_$AppDatabase, $EventsTable> {
@@ -3326,6 +3501,29 @@ class $$EventsTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$TasksTableFilterComposer get linkedTaskId {
+    final $$TasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedTaskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableFilterComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EventsTableOrderingComposer
@@ -3386,6 +3584,29 @@ class $$EventsTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$TasksTableOrderingComposer get linkedTaskId {
+    final $$TasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedTaskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EventsTableAnnotationComposer
@@ -3431,6 +3652,29 @@ class $$EventsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$TasksTableAnnotationComposer get linkedTaskId {
+    final $$TasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.linkedTaskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EventsTableTableManager
@@ -3444,9 +3688,9 @@ class $$EventsTableTableManager
           $$EventsTableAnnotationComposer,
           $$EventsTableCreateCompanionBuilder,
           $$EventsTableUpdateCompanionBuilder,
-          (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
+          (Event, $$EventsTableReferences),
           Event,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool linkedTaskId})
         > {
   $$EventsTableTableManager(_$AppDatabase db, $EventsTable table)
     : super(
@@ -3464,6 +3708,7 @@ class $$EventsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<int?> linkedTaskId = const Value.absent(),
                 Value<DateTime> startsAt = const Value.absent(),
                 Value<DateTime> endsAt = const Value.absent(),
                 Value<bool> allDay = const Value.absent(),
@@ -3475,6 +3720,7 @@ class $$EventsTableTableManager
                 id: id,
                 title: title,
                 notes: notes,
+                linkedTaskId: linkedTaskId,
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
@@ -3488,6 +3734,7 @@ class $$EventsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String title,
                 Value<String?> notes = const Value.absent(),
+                Value<int?> linkedTaskId = const Value.absent(),
                 required DateTime startsAt,
                 required DateTime endsAt,
                 Value<bool> allDay = const Value.absent(),
@@ -3499,6 +3746,7 @@ class $$EventsTableTableManager
                 id: id,
                 title: title,
                 notes: notes,
+                linkedTaskId: linkedTaskId,
                 startsAt: startsAt,
                 endsAt: endsAt,
                 allDay: allDay,
@@ -3511,15 +3759,49 @@ class $$EventsTableTableManager
               .map(
                 (e) => (
                   e.readTable<$EventsTable, Event>(table),
-                  BaseReferences<_$AppDatabase, $EventsTable, Event>(
-                    db,
-                    table,
-                    e,
-                  ),
+                  $$EventsTableReferences(db, table, e),
                 ),
               )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({linkedTaskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (linkedTaskId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.linkedTaskId,
+                        referencedTable: $$EventsTableReferences
+                            ._linkedTaskIdTable(db),
+                        referencedColumn: $$EventsTableReferences
+                            ._linkedTaskIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
         ),
       );
 }
@@ -3534,9 +3816,9 @@ typedef $$EventsTableProcessedTableManager =
       $$EventsTableAnnotationComposer,
       $$EventsTableCreateCompanionBuilder,
       $$EventsTableUpdateCompanionBuilder,
-      (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
+      (Event, $$EventsTableReferences),
       Event,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool linkedTaskId})
     >;
 
 class $AppDatabaseManager {

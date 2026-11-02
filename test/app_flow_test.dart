@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gtd/app.dart';
+import 'package:gtd/core/date_x.dart';
 import 'package:gtd/data/database.dart';
 import 'package:gtd/providers.dart';
 import 'package:gtd/services/time_zone_service.dart';
@@ -545,6 +546,53 @@ void main() {
     expect(find.text('Sync now'), findsNothing);
 
     debugDefaultTargetPlatformOverride = null;
+    await disposeApp(tester);
+  });
+
+  testWidgets('linking an event to a task shows up on both sides', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    final taskId = await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final today = dateOnly(DateTime.now());
+    final eventId = await db.eventDao.createEvent(
+      EventsCompanion.insert(
+        title: 'Design review',
+        startsAt: today.add(const Duration(hours: 14)),
+        endsAt: today.add(const Duration(hours: 15)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // Calendar: open the event and link the task.
+    await openTab(tester, 'Calendar');
+    await tester.tap(find.text('Design review'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Link a task'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prepare deck').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect((await db.eventDao.eventById(eventId))!.linkedTaskId, taskId);
+    // The agenda row shows the linked task.
+    expect(find.text('Prepare deck'), findsWidgets);
+
+    // Tasks: the sheet lists the linked event.
+    await openTab(tester, 'Todos');
+    await tester.tap(find.text('Prepare deck').last);
+    await tester.pumpAndSettle();
+    expect(find.text('LINKED EVENTS'), findsOneWidget);
+    expect(find.text('Design review'), findsWidgets);
+
     await disposeApp(tester);
   });
 

@@ -152,6 +152,31 @@ class CalendarFocusedDay extends Notifier<DateTime> {
   void set(DateTime day) => state = dateOnly(day);
 }
 
+/// Every stored event row (series, not occurrences).
+final allEventsProvider = StreamProvider<List<Event>>((ref) {
+  return ref.watch(eventDaoProvider).watchAllEvents();
+});
+
+/// Events linked to one task, newest window not applied (series rows).
+final eventsForTaskProvider = StreamProvider.family<List<Event>, int>((
+  ref,
+  taskId,
+) {
+  return ref.watch(eventDaoProvider).watchEventsForTask(taskId);
+});
+
+/// `taskId -> linked event rows`, used to mark tasks in lists.
+final linkedEventsByTaskProvider = Provider<Map<int, List<Event>>>((ref) {
+  final events = ref.watch(allEventsProvider).value ?? const <Event>[];
+  final byTask = <int, List<Event>>{};
+  for (final event in events) {
+    final taskId = event.linkedTaskId;
+    if (taskId == null) continue;
+    byTask.putIfAbsent(taskId, () => <Event>[]).add(event);
+  }
+  return byTask;
+});
+
 /// Events (series rows) that may appear in the given month window.
 final eventsInRangeProvider =
     StreamProvider.family<List<Event>, (DateTime, DateTime)>((ref, range) {

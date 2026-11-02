@@ -21,13 +21,25 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (m) async {
       await m.createAll();
       await _seed();
+    },
+    onUpgrade: (m, from, to) async {
+      // v2: events can be linked to a task.
+      if (from < 2) {
+        await m.addColumn(events, events.linkedTaskId);
+      }
+    },
+    beforeOpen: (details) async {
+      // SQLite disables foreign keys per connection; without this the
+      // board -> column -> task cascades and the event -> task link would
+      // silently do nothing.
+      await customStatement('PRAGMA foreign_keys = ON');
     },
   );
 

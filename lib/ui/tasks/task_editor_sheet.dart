@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/date_x.dart';
 import '../../data/database.dart';
 import '../../providers.dart';
+import '../calendar/event_editor_sheet.dart';
 
 /// Opens the create/edit sheet for a task.
 ///
@@ -23,6 +24,7 @@ Future<bool?> showTaskEditor(
     builder: (_) => TaskEditorSheet(
       boardId: boardId,
       task: task,
+      pageContext: context,
       initialColumnId: initialColumnId,
       initialDueDate: initialDueDate,
     ),
@@ -33,12 +35,17 @@ class TaskEditorSheet extends ConsumerStatefulWidget {
   const TaskEditorSheet({
     super.key,
     required this.boardId,
+    required this.pageContext,
     this.task,
     this.initialColumnId,
     this.initialDueDate,
   });
 
   final int boardId;
+
+  /// Context of the page that opened the sheet; used to push the event editor
+  /// after the task sheet is closed.
+  final BuildContext pageContext;
   final Task? task;
   final int? initialColumnId;
   final DateTime? initialDueDate;
@@ -154,6 +161,21 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
 
     if (!mounted) return;
     Navigator.of(context).pop(true);
+  }
+
+  /// Closes the sheet and opens the event editor (optionally pre-linked).
+  Future<void> _openEventEditor(Event? event) async {
+    final taskId = widget.task?.id;
+    final navigator = Navigator.of(context);
+    navigator.pop(false);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    if (!widget.pageContext.mounted) return;
+    await showEventEditor(
+      widget.pageContext,
+      event: event,
+      initialDay: widget.task?.dueDate ?? DateTime.now(),
+      initialLinkedTaskId: event == null ? taskId : null,
+    );
   }
 
   Future<void> _delete() async {
@@ -304,6 +326,11 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 value: _completed,
                 onChanged: (value) => setState(() => _completed = value),
               ),
+              _LinkedEventsSection(
+                taskId: widget.task!.id,
+                onOpenEvent: _openEventEditor,
+                onCreateEvent: () => _openEventEditor(null),
+              ),
             ],
             const SizedBox(height: 20),
             Row(
@@ -329,6 +356,81 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Events attached to this task, with a shortcut to create a new one.
+class _LinkedEventsSection extends ConsumerWidget {
+  const _LinkedEventsSection({
+    required this.taskId,
+    required this.onOpenEvent,
+    required this.onCreateEvent,
+  });
+
+  final int taskId;
+  final void Function(Event event) onOpenEvent;
+  final VoidCallback onCreateEvent;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final events =
+        ref.watch(eventsForTaskProvider(taskId)).value ?? const <Event>[];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Text(
+              'LINKED EVENTS',
+              style: theme.textTheme.labelMedium?.copyWith(
+                letterSpacing: .8,
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: onCreateEvent,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('New event'),
+            ),
+          ],
+        ),
+        if (events.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'No calendar event linked to this task yet.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          )
+        else
+          for (final event in events)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.event_outlined),
+              title: Text(
+                event.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                event.recurrence == RecurrenceFrequency.none
+                    ? '${formatDay(event.startsAt)}'
+                          '${event.allDay ? '' : ' · ${formatTime(event.startsAt)}'}'
+                    : '${formatDay(event.startsAt)} · repeats',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => onOpenEvent(event),
+            ),
+      ],
     );
   }
 }

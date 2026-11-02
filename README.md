@@ -22,6 +22,8 @@ app works offline and never sends data anywhere.
   line, bullets stripped, same date parsing.
 - **Calendar** — month / 2-week / week views, day agenda, events with
   daily-weekly-monthly recurrence, plus the tasks due on the selected day.
+  Events can be linked to a task: the agenda row and the todo list both show
+  the link, and the task sheet lists its events with a "New event" shortcut.
 - **Settings** — configurable swipe actions (complete / today / tomorrow /
   delete, per direction), an optional daily reminder notification, JSON
   export & import, Android device-calendar sync, app version and the
@@ -90,9 +92,13 @@ boards(id, name, position)
 board_columns(id, board_id, title, position, is_done)
 tasks(id, board_id, column_id, title, notes, due_date,
       priority(enum), position, completed_at, created_at, updated_at)
-events(id, title, notes, starts_at, ends_at, all_day,
+events(id, title, notes, linked_task_id?, starts_at, ends_at, all_day,
        recurrence(none|daily|weekly|monthly), by_weekday, recurrence_until)
 ```
+
+Schema version 2 adds `events.linked_task_id` (migration handles v1 databases);
+foreign keys are switched on per connection, so `board → column → task`
+cascades and `task → event` links are set to null when a task is deleted.
 
 Recurring events are **expanded on read**, never duplicated in storage:
 `expandEvent()` produces the occurrences inside the requested window and
@@ -157,7 +163,8 @@ Reached from the gear icon in any tab.
   Imports validate `app`/`version`, then replace the database in a transaction.
 - **Calendar sync** (Android only) — pick a device calendar (or create a local
   `GTD` one) and mirror every event, recurring series included
-  (`RRULE` + `DURATION`). `CalendarSyncService` keeps a `eventId -> deviceEventId`
+  (`RRULE` + `DURATION`); events linked to a task get `Task: <title>` appended
+  to the device description. `CalendarSyncService` keeps a `eventId -> deviceEventId`
   map so repeat syncs update instead of duplicating, and deletes device copies
   whose app event is gone. "Remove synced events" deletes only the copies this
   app created.
@@ -205,6 +212,8 @@ fvm flutter test
   persistence, RRULE generation.
 - `test/device_calendar_service_test.dart` — the `gtd/calendar` MethodChannel
   contract (payload shape, all-day conversion, parsing) with a mock channel.
+- `test/event_task_link_test.dart` — foreign-key enforcement and cascades, link
+  persistence from both sides, and the v1 → v2 migration on a real database.
 - `test/recurrence_test.dart` — occurrence expansion for all recurrence modes.
 - `test/widget_test.dart` — `KanbanBoardView` rendering/callbacks.
 - `test/app_flow_test.dart` — the real app against an in-memory drift database:

@@ -264,19 +264,23 @@ class _AgendaList extends ConsumerWidget {
   }
 }
 
-class _EventTile extends StatelessWidget {
+class _EventTile extends ConsumerWidget {
   const _EventTile({required this.occurrence});
 
   final EventOccurrence occurrence;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final event = occurrence.event;
     final timeLabel = event.allDay
         ? 'All day'
         : '${formatTime(occurrence.start)} – ${formatTime(occurrence.end)}';
+    final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
+    final linkedTask = event.linkedTaskId == null
+        ? null
+        : tasks.where((task) => task.id == event.linkedTaskId).firstOrNull;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -284,6 +288,7 @@ class _EventTile extends StatelessWidget {
       color: scheme.surfaceContainerLow,
       child: ListTile(
         onTap: () => showEventEditor(context, event: event),
+        isThreeLine: linkedTask != null,
         leading: Container(
           width: 4,
           height: 40,
@@ -309,13 +314,38 @@ class _EventTile extends StatelessWidget {
               ),
           ],
         ),
-        subtitle: Text(
-          event.notes == null || event.notes!.trim().isEmpty
-              ? timeLabel
-              : '$timeLabel · ${event.notes}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: theme.textTheme.bodySmall,
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              event.notes == null || event.notes!.trim().isEmpty
+                  ? timeLabel
+                  : '$timeLabel · ${event.notes}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall,
+            ),
+            if (linkedTask != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  children: [
+                    Icon(Icons.link, size: 12, color: scheme.tertiary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        linkedTask.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.tertiary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
         ),
       ),
     );
