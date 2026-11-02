@@ -7,6 +7,7 @@ import '../../core/recurrence.dart';
 import '../../data/database.dart';
 import '../../l10n/l10n.dart';
 import '../../providers.dart';
+import '../search/search_button.dart';
 import '../settings/settings_button.dart';
 import '../tasks/task_editor_sheet.dart';
 import 'event_editor_sheet.dart';
@@ -91,6 +92,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 .set(DateTime.now()),
             icon: const Icon(Icons.today_outlined),
           ),
+          const SearchButton(),
           const SettingsButton(),
         ],
       ),

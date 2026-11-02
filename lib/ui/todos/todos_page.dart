@@ -10,6 +10,7 @@ import '../../settings/settings.dart';
 import '../../core/quick_parse.dart';
 import '../../l10n/l10n.dart';
 import '../../providers.dart';
+import '../search/search_button.dart';
 import '../settings/settings_button.dart';
 import '../tasks/quick_add_bar.dart';
 import '../tasks/task_card.dart';
@@ -102,6 +103,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
               ),
             ],
           ),
+          const SearchButton(),
           const SettingsButton(),
         ],
         bottom: PreferredSize(

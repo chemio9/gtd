@@ -688,6 +688,61 @@ void main() {
     await disposeApp(tester);
   });
 
+  testWidgets('search finds tasks and events and opens their editors', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    final board = await db.boardDao.firstBoard();
+    final column = await db.boardDao.firstColumn(board!.id);
+    await db.taskDao.createTask(
+      title: 'Prepare deck',
+      boardId: board.id,
+      columnId: column!.id,
+    );
+    final today = dateOnly(DateTime.now());
+    await db.eventDao.createEvent(
+      EventsCompanion.insert(
+        title: 'Design review',
+        startsAt: today.add(const Duration(hours: 15)),
+        endsAt: today.add(const Duration(hours: 16)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Search'));
+    await tester.pumpAndSettle();
+
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'deck');
+    await tester.pumpAndSettle();
+    expect(find.text('Prepare deck'), findsOneWidget);
+    expect(find.text('Design review'), findsNothing);
+
+    await tester.tap(find.text('Prepare deck'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit task'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'review');
+    await tester.pumpAndSettle();
+    expect(find.text('Design review'), findsOneWidget);
+
+    await tester.tap(find.text('Design review'));
+    await tester.pumpAndSettle();
+    expect(find.text('Edit event'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'zzzz');
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Nothing found'), findsOneWidget);
+
+    await disposeApp(tester);
+  });
+
   testWidgets('adds and deletes a board column', (tester) async {
     await pumpApp(tester);
 
