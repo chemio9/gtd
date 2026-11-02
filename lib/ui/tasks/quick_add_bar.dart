@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/date_x.dart';
 import '../../core/quick_parse.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 
 /// Inline "add a task" row, modelled after Microsoft To Do.
@@ -185,12 +186,12 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
         SnackBar(
           content: Text(
             ids.length == 1
-                ? 'Added "${parsedLines.single.title}"'
-                : 'Added ${ids.length} tasks',
+                ? context.l10n.quickAddAddedOne(parsedLines.single.title)
+                : context.l10n.quickAddAddedMany(ids.length),
           ),
           duration: const Duration(seconds: 3),
           action: SnackBarAction(
-            label: 'Undo',
+            label: context.l10n.undo,
             onPressed: () async {
               for (final id in ids) {
                 await dao.deleteTask(id);
@@ -238,6 +239,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
     final scheme = theme.colorScheme;
     final compact = MediaQuery.sizeOf(context).width < 420;
     final due = _parsed.dueDate;
+    final l10n = context.l10n;
 
     if (!widget.expanded) {
       return Padding(
@@ -256,7 +258,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      'Add a task',
+                      l10n.quickAddHint,
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -308,8 +310,8 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                         autofocus: true,
                         textInputAction: TextInputAction.done,
                         textCapitalization: TextCapitalization.sentences,
-                        decoration: const InputDecoration(
-                          hintText: 'Add a task',
+                        decoration: InputDecoration(
+                          hintText: context.l10n.quickAddHint,
                           border: InputBorder.none,
                           isDense: true,
                         ),
@@ -325,7 +327,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                       onMenu: _openDueMenu,
                     ),
                   IconButton(
-                    tooltip: 'Add task',
+                    tooltip: context.l10n.quickAddAction,
                     visualDensity: VisualDensity.compact,
                     onPressed: _saving ? null : _submit,
                     icon: _saving
@@ -337,7 +339,7 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                         : const Icon(Icons.arrow_upward),
                   ),
                   IconButton(
-                    tooltip: 'Done adding',
+                    tooltip: context.l10n.quickAddDone,
                     visualDensity: VisualDensity.compact,
                     onPressed: () {
                       _controller.clear();
@@ -353,7 +355,9 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
                   child: Row(
                     children: [
                       _ParsedDueBadge(
-                        label: 'Due ${formatDueLabel(due)}',
+                        label: context.l10n.dueLabel(
+                          formatDueLabel(due),
+                        ),
                         onTap: _openDueMenu,
                         onClear: _resetDue,
                       ),
@@ -378,22 +382,22 @@ class QuickAddBarState extends ConsumerState<QuickAddBar> {
           children: [
             ListTile(
               leading: const Icon(Icons.today_outlined),
-              title: const Text('Today'),
+              title: Text(context.l10n.today),
               onTap: () => Navigator.pop(context, 'today'),
             ),
             ListTile(
               leading: const Icon(Icons.event_outlined),
-              title: const Text('Tomorrow'),
+              title: Text(context.l10n.tomorrow),
               onTap: () => Navigator.pop(context, 'tomorrow'),
             ),
             ListTile(
               leading: const Icon(Icons.date_range_outlined),
-              title: const Text('Pick a date…'),
+              title: Text(context.l10n.pickDate),
               onTap: () => Navigator.pop(context, 'pick'),
             ),
             ListTile(
               leading: const Icon(Icons.event_busy_outlined),
-              title: const Text('No date'),
+              title: Text(context.l10n.noDate),
               onTap: () => Navigator.pop(context, 'none'),
             ),
           ],
@@ -522,7 +526,7 @@ class _ParsedDueBadge extends StatelessWidget {
             ),
             const SizedBox(width: 4),
           IconButton(
-            tooltip: 'Clear recognised date',
+            tooltip: context.l10n.quickAddClearParsed,
             visualDensity: VisualDensity.compact,
             iconSize: 14,
             constraints: const BoxConstraints(minWidth: 28, minHeight: 28),

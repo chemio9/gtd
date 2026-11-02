@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_x.dart';
 import '../../core/quick_parse.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 
 /// Inline "add a card" field rendered at the top of a kanban column.
@@ -107,8 +108,8 @@ class _InlineCardAddState extends ConsumerState<InlineCardAdd> {
                       autofocus: true,
                       textInputAction: TextInputAction.done,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        hintText: 'New card',
+                      decoration: InputDecoration(
+                        hintText: context.l10n.boardNewCard,
                         border: InputBorder.none,
                         isDense: true,
                       ),
@@ -117,7 +118,7 @@ class _InlineCardAddState extends ConsumerState<InlineCardAdd> {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Add card',
+                    tooltip: context.l10n.boardAddCard,
                     visualDensity: VisualDensity.compact,
                     iconSize: 18,
                     constraints: const BoxConstraints.tightFor(
@@ -135,7 +136,7 @@ class _InlineCardAddState extends ConsumerState<InlineCardAdd> {
                         : const Icon(Icons.arrow_upward),
                   ),
                   IconButton(
-                    tooltip: 'Close',
+                    tooltip: context.l10n.close,
                     visualDensity: VisualDensity.compact,
                     iconSize: 18,
                     constraints: const BoxConstraints.tightFor(
@@ -161,7 +162,9 @@ class _InlineCardAddState extends ConsumerState<InlineCardAdd> {
                       const SizedBox(width: 4),
                       Flexible(
                         child: Text(
-                          'Due ${formatDueLabel(parsed.dueDate!)}',
+                          context.l10n.dueLabel(
+                            formatDueLabel(parsed.dueDate!),
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.labelSmall?.copyWith(

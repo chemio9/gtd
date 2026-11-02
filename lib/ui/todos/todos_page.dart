@@ -8,6 +8,7 @@ import '../../core/date_x.dart';
 import '../../data/database.dart';
 import '../../settings/settings.dart';
 import '../../core/quick_parse.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../settings/settings_button.dart';
 import '../tasks/quick_add_bar.dart';
@@ -61,10 +62,10 @@ class _TodosPageState extends ConsumerState<TodosPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Todos'),
+        title: Text(context.l10n.todosTitle),
         actions: [
           PopupMenuButton<String>(
-            tooltip: 'More',
+            tooltip: context.l10n.todosMore,
             onSelected: (value) {
               if (board == null) return;
               switch (value) {
@@ -78,14 +79,14 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                   _pasteList(board.id, _defaultDueDate(filter));
               }
             },
-            itemBuilder: (context) => const [
+            itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'detailed',
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.edit_note),
-                  title: Text('Detailed task'),
+                  leading: const Icon(Icons.edit_note),
+                  title: Text(context.l10n.todosDetailedTask),
                 ),
               ),
               PopupMenuItem(
@@ -93,8 +94,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                 child: ListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.content_paste_go),
-                  title: Text('Paste list'),
+                  leading: const Icon(Icons.content_paste_go),
+                  title: Text(context.l10n.todosPasteList),
                 ),
               ),
             ],
@@ -112,7 +113,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                 children: [
                   for (final option in TodoFilter.values) ...[
                     ChoiceChip(
-                      label: Text(_filterLabel(option)),
+                      label: Text(_filterLabel(context, option)),
                       selected: filter == option,
                       showCheckmark: false,
                       onSelected: (_) => filterNotifier.set(option),
@@ -153,7 +154,8 @@ class _TodosPageState extends ConsumerState<TodosPage> {
                     children: [
                       for (final entry in groups.entries) ...[
                         _SectionHeader(
-                          title: entry.key,
+                          title: _groupLabel(context, entry.key),
+                          isOverdue: entry.key == TodoGroup.overdue,
                           count: entry.value.length,
                         ),
                         for (final task in entry.value)
@@ -188,7 +190,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
           : FloatingActionButton(
               heroTag: 'todos-fab',
               onPressed: _expandQuickAdd,
-              tooltip: 'Add a task',
+              tooltip: context.l10n.todosAddTask,
               child: const Icon(Icons.add),
             ),
     );
@@ -218,9 +220,9 @@ class _TodosPageState extends ConsumerState<TodosPage> {
         await dao.deleteTask(task.id);
         if (!mounted) return;
         _snack(
-          'Deleted "${task.title}"',
+          context.l10n.todosDeletedTask(task.title),
           action: SnackBarAction(
-            label: 'Undo',
+            label: context.l10n.undo,
             onPressed: () async {
               final db = ref.read(databaseProvider);
               await db.into(db.tasks).insert(task.toCompanion(true));
@@ -232,6 +234,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
 
   /// Turns the clipboard into one task per line (`- ` bullets are stripped).
   Future<void> _pasteList(int boardId, DateTime? defaultDue) async {
+    final l10n = context.l10n;
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text ?? '';
     final lines = text
@@ -241,7 +244,7 @@ class _TodosPageState extends ConsumerState<TodosPage> {
         .toList();
 
     if (lines.isEmpty) {
-      _snack('Clipboard is empty');
+      _snack(l10n.todosClipboardEmpty);
       return;
     }
 
@@ -261,7 +264,9 @@ class _TodosPageState extends ConsumerState<TodosPage> {
     if (ids.isEmpty || !mounted) return;
 
     _snack(
-      ids.length == 1 ? 'Added "${lines.first}"' : 'Added ${ids.length} tasks',
+      ids.length == 1
+          ? l10n.todosAddedTask(lines.first)
+          : l10n.todosAddedTasks(ids.length),
       action: SnackBarAction(
         label: 'Undo',
         onPressed: () async {
@@ -285,25 +290,40 @@ class _TodosPageState extends ConsumerState<TodosPage> {
       );
   }
 
-  String _filterLabel(TodoFilter filter) => switch (filter) {
-    TodoFilter.all => 'All',
-    TodoFilter.today => 'Today',
-    TodoFilter.upcoming => 'Upcoming',
-    TodoFilter.anytime => 'Anytime',
-    TodoFilter.done => 'Done',
+  String _filterLabel(BuildContext context, TodoFilter filter) =>
+      switch (filter) {
+        TodoFilter.all => context.l10n.todosFilterAll,
+        TodoFilter.today => context.l10n.todosFilterToday,
+        TodoFilter.upcoming => context.l10n.todosFilterUpcoming,
+        TodoFilter.anytime => context.l10n.todosFilterAnytime,
+        TodoFilter.done => context.l10n.todosFilterDone,
+      };
+
+  String _groupLabel(BuildContext context, TodoGroup group) => switch (group) {
+    TodoGroup.overdue => context.l10n.todosGroupOverdue,
+    TodoGroup.today => context.l10n.todosGroupToday,
+    TodoGroup.tomorrow => context.l10n.todosGroupTomorrow,
+    TodoGroup.upcoming => context.l10n.todosGroupUpcoming,
+    TodoGroup.later => context.l10n.todosGroupLater,
+    TodoGroup.anytime => context.l10n.todosGroupAnytime,
+    TodoGroup.completed => context.l10n.todosGroupCompleted,
   };
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.count});
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    this.isOverdue = false,
+  });
 
   final String title;
   final int count;
+  final bool isOverdue;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOverdue = title == 'Overdue';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
       child: Row(
@@ -353,8 +373,8 @@ class _EmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             filter == TodoFilter.done
-                ? 'Nothing completed yet.'
-                : 'Nothing here. Type above to add a task.',
+                ? context.l10n.todosEmptyCompleted
+                : context.l10n.todosEmpty,
             textAlign: TextAlign.center,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.onSurfaceVariant,

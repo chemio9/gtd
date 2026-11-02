@@ -9,6 +9,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/date_x.dart';
 import '../../data/calendar_sync.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../../services/device_calendar_service.dart';
 import '../../services/time_zone_service.dart';
@@ -39,30 +40,30 @@ class SettingsPage extends ConsumerWidget {
         !kIsWeb && ref.read(notificationServiceProvider).isSupported;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings')),
+      appBar: AppBar(title: Text(context.l10n.settingsTitle)),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
-          const _SectionHeader('Swipe actions'),
+          _SectionHeader(context.l10n.settingsSwipe),
           _SwipeActionTile(
-            title: 'Swipe right',
-            subtitle: 'On a task in the Todos list',
+            title: context.l10n.settingsSwipeRight,
+            subtitle: context.l10n.settingsSwipeRightHint,
             value: settings.swipeStart,
             onChanged: notifier.setSwipeStart,
           ),
           _SwipeActionTile(
-            title: 'Swipe left',
+            title: context.l10n.settingsSwipeLeft,
             value: settings.swipeEnd,
             onChanged: notifier.setSwipeEnd,
           ),
           const Divider(height: 24),
-          const _SectionHeader('Reminders'),
+          _SectionHeader(context.l10n.settingsReminders),
           SwitchListTile(
-            title: const Text('Daily reminder'),
+            title: Text(context.l10n.settingsDailyReminder),
             subtitle: Text(
               notificationsAvailable
-                  ? 'A notification at your chosen time'
-                  : 'Not available in the browser build',
+                  ? context.l10n.settingsDailyReminderHint
+                  : context.l10n.settingsNotificationsUnsupported,
             ),
             value: settings.notificationsEnabled && notificationsAvailable,
             onChanged: notificationsAvailable
@@ -72,7 +73,7 @@ class SettingsPage extends ConsumerWidget {
           ListTile(
             enabled: settings.notificationsEnabled && notificationsAvailable,
             leading: const Icon(Icons.schedule_outlined),
-            title: const Text('Reminder time'),
+            title: Text(context.l10n.settingsReminderTime),
             trailing: Text(
               formatTime(
                 DateTime(2000, 1, 1, settings.reminderTime.hour,
@@ -83,27 +84,27 @@ class SettingsPage extends ConsumerWidget {
             onTap: () => _pickReminderTime(context, ref, settings.reminderTime),
           ),
           const Divider(height: 24),
-          const _SectionHeader('Calendar sync'),
+          _SectionHeader(context.l10n.settingsCalendarSync),
           ..._calendarSyncSection(context, ref, settings, notifier),
           const Divider(height: 24),
-          const _SectionHeader('Backup'),
+          _SectionHeader(context.l10n.settingsBackup),
           ListTile(
             leading: const Icon(Icons.upload_file_outlined),
-            title: const Text('Export'),
-            subtitle: const Text('Save boards, tasks and events as JSON'),
+            title: Text(context.l10n.settingsExport),
+            subtitle: Text(context.l10n.settingsExportHint),
             onTap: () => _export(context, ref),
           ),
           ListTile(
             leading: const Icon(Icons.download_outlined),
-            title: const Text('Import'),
-            subtitle: const Text('Replace everything with a backup file'),
+            title: Text(context.l10n.settingsImport),
+            subtitle: Text(context.l10n.settingsImportHint),
             onTap: () => _import(context, ref),
           ),
           const Divider(height: 24),
-          const _SectionHeader('About'),
+          _SectionHeader(context.l10n.settingsAbout),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('Version'),
+            title: Text(context.l10n.settingsVersion),
             trailing: Text(
               version.value ??
                   (version.isLoading ? '…' : 'unknown'),
@@ -111,8 +112,8 @@ class SettingsPage extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.description_outlined),
-            title: const Text('Licenses'),
-            subtitle: const Text('Open source packages used by GTD'),
+            title: Text(context.l10n.settingsLicenses),
+            subtitle: Text(context.l10n.settingsLicensesHint),
             onTap: () => showLicensePage(
               context: context,
               applicationName: 'GTD',
@@ -132,12 +133,12 @@ class SettingsPage extends ConsumerWidget {
   ) {
     final service = ref.read(deviceCalendarServiceProvider);
     if (!service.isSupported) {
-      return const [
+      return [
         ListTile(
           enabled: false,
-          leading: Icon(Icons.calendar_month_outlined),
-          title: Text('Device calendar'),
-          subtitle: Text('Only available on Android'),
+          leading: const Icon(Icons.calendar_month_outlined),
+          title: Text(context.l10n.settingsDeviceCalendar),
+          subtitle: Text(context.l10n.settingsOnlyAndroid),
         ),
       ];
     }
@@ -146,9 +147,10 @@ class SettingsPage extends ConsumerWidget {
     return [
       ListTile(
         leading: const Icon(Icons.calendar_month_outlined),
-        title: const Text('Device calendar'),
+        title: Text(context.l10n.settingsDeviceCalendar),
         subtitle: Text(
-          settings.deviceCalendarName ?? 'Mirror events into a device calendar',
+          settings.deviceCalendarName ??
+              context.l10n.settingsDeviceCalendarHint,
         ),
         trailing: const Icon(Icons.chevron_right),
         onTap: () => _pickDeviceCalendar(context, ref, notifier),
@@ -156,19 +158,21 @@ class SettingsPage extends ConsumerWidget {
       ListTile(
         enabled: settings.hasDeviceCalendar,
         leading: const Icon(Icons.sync),
-        title: const Text('Sync now'),
+        title: Text(context.l10n.settingsSyncNow),
         subtitle: Text(
           lastSync == null
-              ? 'Not synced yet'
-              : 'Last synced ${DateFormat('d MMM, HH:mm').format(lastSync)}',
+              ? context.l10n.settingsNotSyncedYet
+              : context.l10n.settingsLastSynced(
+                  DateFormat('d MMM, HH:mm').format(lastSync),
+                ),
         ),
         onTap: () => _syncCalendar(context, ref, settings, notifier),
       ),
       ListTile(
         enabled: settings.hasDeviceCalendar,
         leading: const Icon(Icons.playlist_remove),
-        title: const Text('Remove synced events'),
-        subtitle: const Text('Delete the copies this app created'),
+        title: Text(context.l10n.settingsRemoveSynced),
+        subtitle: Text(context.l10n.settingsRemoveSyncedHint),
         onTap: () => _unlinkCalendar(context, ref, notifier),
       ),
     ];
@@ -184,7 +188,7 @@ class SettingsPage extends ConsumerWidget {
       var granted = await service.hasPermission();
       if (!granted) granted = await service.requestPermission();
       if (!granted) {
-        if (context.mounted) _snack(context, 'Calendar permission denied');
+        if (context.mounted) _snack(context, context.l10n.settingsCalendarPermissionDenied);
         return;
       }
 
@@ -197,19 +201,16 @@ class SettingsPage extends ConsumerWidget {
         final create = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('No writable calendar'),
-            content: const Text(
-              'This device has no calendar this app can write to. Create a '
-              'local "GTD" calendar?',
-            ),
+            title: Text(context.l10n.settingsNoWritableCalendar),
+            content: Text(context.l10n.settingsNoWritableCalendarBody),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Create'),
+                child: Text(context.l10n.create),
               ),
             ],
           ),
@@ -217,7 +218,7 @@ class SettingsPage extends ConsumerWidget {
         if (create != true) return;
         final id = await service.createLocalCalendar('GTD');
         if (id == null) {
-          if (context.mounted) _snack(context, 'Could not create a calendar');
+          if (context.mounted) _snack(context, context.l10n.settingsCouldNotCreateCalendar);
           return;
         }
         calendars = (await service.calendars())
@@ -253,7 +254,7 @@ class SettingsPage extends ConsumerWidget {
       if (selected == null) return;
       await notifier.setDeviceCalendar(selected.id, selected.name);
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Calendar error: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsCalendarError('$error'));
     }
   }
 
@@ -271,7 +272,7 @@ class SettingsPage extends ConsumerWidget {
       var granted = await service.hasPermission();
       if (!granted) granted = await service.requestPermission();
       if (!granted) {
-        if (context.mounted) _snack(context, 'Calendar permission denied');
+        if (context.mounted) _snack(context, context.l10n.settingsCalendarPermissionDenied);
         return;
       }
 
@@ -283,9 +284,9 @@ class SettingsPage extends ConsumerWidget {
           .read(calendarSyncServiceProvider)
           .sync(calendarId: calendarId, timeZone: timeZone);
       await notifier.markCalendarSynced(DateTime.now());
-      if (context.mounted) _snack(context, 'Calendar synced: ${result.summary}');
+      if (context.mounted) _snack(context, context.l10n.settingsCalendarSynced(result.summary));
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Sync failed: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsSyncFailed('$error'));
     }
   }
 
@@ -297,19 +298,16 @@ class SettingsPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove synced events?'),
-        content: const Text(
-          'The copies in your device calendar are deleted. Your GTD events stay '
-          'in the app.',
-        ),
+        title: Text(context.l10n.settingsRemoveSyncedQuestion),
+        content: Text(context.l10n.settingsRemoveSyncedBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove'),
+            child: Text(context.l10n.remove),
           ),
         ],
       ),
@@ -319,9 +317,9 @@ class SettingsPage extends ConsumerWidget {
     try {
       final removed = await ref.read(calendarSyncServiceProvider).unlinkAll();
       await notifier.markCalendarSynced(DateTime.now());
-      if (context.mounted) _snack(context, 'Removed $removed event(s)');
+      if (context.mounted) _snack(context, context.l10n.settingsRemovedEvents(removed));
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Could not remove events: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsCouldNotRemove('$error'));
     }
   }
 
@@ -343,19 +341,19 @@ class SettingsPage extends ConsumerWidget {
       final granted = await service.requestPermission();
       if (!granted) {
         if (context.mounted) {
-          _snack(context, 'Notification permission denied');
+          _snack(context, context.l10n.settingsNotificationDenied);
         }
         return;
       }
       await notifier.setNotificationsEnabled(true);
       await service.scheduleDailyReminder(ref.read(settingsProvider).reminderTime);
       if (context.mounted) {
-        _snack(context, 'Daily reminder enabled');
+        _snack(context, context.l10n.settingsDailyReminderEnabled);
       }
     } on Object catch (error) {
       await notifier.setNotificationsEnabled(false);
       if (context.mounted) {
-        _snack(context, 'Could not enable notifications: $error');
+        _snack(context, context.l10n.settingsCouldNotEnable('$error'));
       }
     }
   }
@@ -377,13 +375,14 @@ class SettingsPage extends ConsumerWidget {
             .scheduleDailyReminder(time);
       } on Object catch (error) {
         if (context.mounted) {
-          _snack(context, 'Could not reschedule reminder: $error');
+          _snack(context, context.l10n.settingsCouldNotReschedule('$error'));
         }
       }
     }
   }
 
   Future<void> _export(BuildContext context, WidgetRef ref) async {
+    final l10n = context.l10n;
     try {
       final backup = await ref.read(backupServiceProvider).export();
       final json = const JsonEncoder.withIndent('  ').convert(backup);
@@ -392,16 +391,18 @@ class SettingsPage extends ConsumerWidget {
         fileName: 'gtd-backup-$stamp.json',
         bytes: Uint8List.fromList(utf8.encode(json)),
         mimeType: 'application/json',
-        dialogTitle: 'Export GTD backup',
+        dialogTitle: l10n.settingsExportDialogTitle,
       );
       if (context.mounted) {
         _snack(
           context,
-          target == null ? 'Backup not saved' : 'Backup saved',
+          target == null
+              ? l10n.settingsBackupNotSaved
+              : l10n.settingsBackupSaved,
         );
       }
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Export failed: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsExportFailed('$error'));
     }
   }
 
@@ -411,12 +412,12 @@ class SettingsPage extends ConsumerWidget {
       final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['json'],
-        dialogTitle: 'Import GTD backup',
+        dialogTitle: context.l10n.settingsImportDialogTitle,
       );
       if (files.isEmpty) return;
       bytes = await files.first.readAsBytes();
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Could not open file: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsCouldNotOpenFile('$error'));
       return;
     }
 
@@ -424,19 +425,16 @@ class SettingsPage extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Replace all data?'),
-        content: const Text(
-          'Importing a backup deletes the boards, tasks and events that are '
-          'currently stored on this device.',
-        ),
+        title: Text(context.l10n.settingsReplaceAllQuestion),
+        content: Text(context.l10n.settingsReplaceAllBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Import'),
+            child: Text(context.l10n.settingsImport),
           ),
         ],
       ),
@@ -449,12 +447,12 @@ class SettingsPage extends ConsumerWidget {
           .importJson(utf8.decode(bytes));
       ref.read(selectedBoardIdProvider.notifier).select(null);
       if (context.mounted) {
-        _snack(context, 'Imported ${result.summary}');
+        _snack(context, context.l10n.settingsImported(result.summary));
       }
     } on FormatException catch (error) {
       if (context.mounted) _snack(context, error.message);
     } on Object catch (error) {
-      if (context.mounted) _snack(context, 'Import failed: $error');
+      if (context.mounted) _snack(context, context.l10n.settingsImportFailed('$error'));
     }
   }
 

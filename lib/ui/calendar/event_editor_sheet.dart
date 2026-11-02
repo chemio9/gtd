@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/date_x.dart';
 import '../../core/recurrence.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 
 Future<bool?> showEventEditor(
@@ -221,20 +222,20 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete event?'),
+        title: Text(context.l10n.eventDeleteQuestion),
         content: Text(
           event.recurrence == RecurrenceFrequency.none
-              ? '"${event.title}" will be removed.'
-              : '"${event.title}" and all of its repetitions will be removed.',
+              ? context.l10n.eventDeleteOne(event.title)
+              : context.l10n.eventDeleteSeries(event.title),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -261,7 +262,9 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _isEditing ? 'Edit event' : 'New event',
+              _isEditing
+                  ? context.l10n.eventEditTitle
+                  : context.l10n.eventNewTitle,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -269,9 +272,9 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
               controller: _title,
               autofocus: !_isEditing,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.title,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _save(),
             ),
@@ -280,9 +283,9 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
               controller: _notes,
               minLines: 1,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.notes,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -294,7 +297,7 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('All day'),
+              title: Text(context.l10n.eventAllDay),
               value: _allDay,
               onChanged: (value) => setState(() {
                 _allDay = value;
@@ -305,14 +308,14 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
               }),
             ),
             _DateTimeRow(
-              label: 'Starts',
+              label: context.l10n.eventStarts,
               value: _start,
               onPickDate: () => _pickDate(isStart: true),
               onPickTime: _allDay ? null : () => _pickTime(isStart: true),
             ),
             const SizedBox(height: 8),
             _DateTimeRow(
-              label: 'Ends',
+              label: context.l10n.eventEnds,
               value: _end,
               onPickDate: () => _pickDate(isStart: false),
               onPickTime: _allDay ? null : () => _pickTime(isStart: false),
@@ -320,26 +323,26 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
             const SizedBox(height: 16),
             DropdownButtonFormField<RecurrenceFrequency>(
               initialValue: _recurrence,
-              decoration: const InputDecoration(
-                labelText: 'Repeat',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.eventRepeat,
+                border: const OutlineInputBorder(),
               ),
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: RecurrenceFrequency.none,
-                  child: Text('Does not repeat'),
+                  child: Text(context.l10n.eventRepeatNone),
                 ),
                 DropdownMenuItem(
                   value: RecurrenceFrequency.daily,
-                  child: Text('Every day'),
+                  child: Text(context.l10n.eventRepeatDaily),
                 ),
                 DropdownMenuItem(
                   value: RecurrenceFrequency.weekly,
-                  child: Text('Every week'),
+                  child: Text(context.l10n.eventRepeatWeekly),
                 ),
                 DropdownMenuItem(
                   value: RecurrenceFrequency.monthly,
-                  child: Text('Every month'),
+                  child: Text(context.l10n.eventRepeatMonthly),
                 ),
               ],
               onChanged: (value) => setState(() {
@@ -380,14 +383,14 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
                       icon: const Icon(Icons.event_repeat),
                       label: Text(
                         _until == null
-                            ? 'No end date'
-                            : 'Until ${formatFullDate(_until!)}',
+                            ? context.l10n.eventNoEndDate
+                            : context.l10n.eventUntil(formatFullDate(_until!)),
                       ),
                     ),
                   ),
                   if (_until != null)
                     IconButton(
-                      tooltip: 'Clear end date',
+                      tooltip: context.l10n.eventClearEndDate,
                       onPressed: () => setState(() => _until = null),
                       icon: const Icon(Icons.close),
                     ),
@@ -406,12 +409,14 @@ class _EventEditorSheetState extends ConsumerState<EventEditorSheet> {
                 const Spacer(),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _save,
-                  child: Text(_isEditing ? 'Save' : 'Create'),
+                  child: Text(
+                    _isEditing ? context.l10n.save : context.l10n.create,
+                  ),
                 ),
               ],
             ),
@@ -488,7 +493,9 @@ class _LinkedTaskRow extends ConsumerWidget {
             onPressed: onPick,
             icon: Icon(linked == null ? Icons.link : Icons.link_off),
             label: Text(
-              linked == null ? 'Link a task' : linked.title,
+              linked == null
+                  ? context.l10n.eventLinkTask
+                  : linked.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -496,7 +503,7 @@ class _LinkedTaskRow extends ConsumerWidget {
         ),
         if (linked != null)
           IconButton(
-            tooltip: 'Unlink task',
+            tooltip: context.l10n.eventUnlinkTask,
             onPressed: onClear,
             icon: const Icon(Icons.close),
           ),
@@ -538,14 +545,17 @@ class _TaskPickerSheetState extends State<_TaskPickerSheet> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Link to a task', style: theme.textTheme.titleMedium),
+            Text(
+              context.l10n.eventLinkToTask,
+              style: theme.textTheme.titleMedium,
+            ),
             const SizedBox(height: 8),
             TextField(
               autofocus: false,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search tasks',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: context.l10n.eventSearchTasks,
+                border: const OutlineInputBorder(),
                 isDense: true,
               ),
               onChanged: (value) => setState(() => _query = value),
@@ -557,7 +567,7 @@ class _TaskPickerSheetState extends State<_TaskPickerSheet> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.link_off),
-                    title: const Text('No task'),
+                    title: Text(context.l10n.eventNoTask),
                     selected: widget.selectedTaskId == null,
                     onTap: () => Navigator.pop(context, -1),
                   ),
@@ -579,9 +589,9 @@ class _TaskPickerSheetState extends State<_TaskPickerSheet> {
                       onTap: () => Navigator.pop(context, task.id),
                     ),
                   if (tasks.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Text('No matching tasks'),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(context.l10n.eventNoMatchingTasks),
                     ),
                 ],
               ),

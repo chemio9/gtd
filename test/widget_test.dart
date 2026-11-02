@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gtd/l10n/l10n.dart';
 import 'package:gtd/ui/kanban/kanban_board_view.dart';
 
 void main() {
@@ -8,7 +9,12 @@ void main() {
     const KanbanColumn<String>(id: 'done', title: 'Done', items: []),
   ];
 
-  Widget wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
+  Widget wrap(Widget child) => MaterialApp(
+    locale: const Locale('en'),
+    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    supportedLocales: AppLocalizations.supportedLocales,
+    home: Scaffold(body: child),
+  );
 
   testWidgets('renders every column and its items', (tester) async {
     await tester.pumpWidget(

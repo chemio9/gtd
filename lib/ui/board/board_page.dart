@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../common/text_prompt_dialog.dart';
 import '../kanban/kanban_board_view.dart';
@@ -28,11 +29,11 @@ class _BoardPageState extends ConsumerState<BoardPage> {
 
     if (board == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Board')),
+        appBar: AppBar(title: Text(context.l10n.boardTitle)),
         body: Center(
           child: boards.isEmpty
               ? const CircularProgressIndicator()
-              : const Text('No board selected'),
+              : Text(context.l10n.boardNoSelection),
         ),
       );
     }
@@ -45,12 +46,12 @@ class _BoardPageState extends ConsumerState<BoardPage> {
         title: _BoardSwitcher(boards: boards, active: board),
         actions: [
           IconButton(
-            tooltip: 'Add column',
+            tooltip: context.l10n.boardAddColumn,
             onPressed: () => _showAddColumnDialog(context, ref, board.id),
             icon: const Icon(Icons.view_column_outlined),
           ),
           IconButton(
-            tooltip: 'New task',
+            tooltip: context.l10n.boardNewTask,
             onPressed: () => showTaskEditor(context, boardId: board.id),
             icon: const Icon(Icons.add_task),
           ),
@@ -123,7 +124,7 @@ class _BoardPageState extends ConsumerState<BoardPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'No tasks',
+                  context.l10n.kanbanNoTasks,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -178,7 +179,7 @@ class _BoardPageState extends ConsumerState<BoardPage> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Rename column'),
+              title: Text(context.l10n.boardRenameColumn),
               onTap: () => Navigator.pop(context, 'rename'),
             ),
             ListTile(
@@ -189,27 +190,27 @@ class _BoardPageState extends ConsumerState<BoardPage> {
               ),
               title: Text(
                 column.isDone
-                    ? 'Mark as active column'
-                    : 'Mark as done column',
+                    ? context.l10n.boardMarkActive
+                    : context.l10n.boardMarkDone,
               ),
               onTap: () => Navigator.pop(context, 'toggle-done'),
             ),
             ListTile(
               leading: const Icon(Icons.arrow_back),
-              title: const Text('Move left'),
+              title: Text(context.l10n.boardMoveLeft),
               enabled: index > 0,
               onTap: () => Navigator.pop(context, 'left'),
             ),
             ListTile(
               leading: const Icon(Icons.arrow_forward),
-              title: const Text('Move right'),
+              title: Text(context.l10n.boardMoveRight),
               enabled: index < columns.length - 1,
               onTap: () => Navigator.pop(context, 'right'),
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete column'),
-              subtitle: const Text('Tasks move to the first column'),
+              title: Text(context.l10n.boardDeleteColumn),
+              subtitle: Text(context.l10n.boardDeleteColumnHint),
               onTap: () => Navigator.pop(context, 'delete'),
             ),
           ],
@@ -222,7 +223,7 @@ class _BoardPageState extends ConsumerState<BoardPage> {
         if (!context.mounted) return;
         final name = await showTextPrompt(
           context,
-          title: 'Rename column',
+          title: context.l10n.boardRenameColumn,
           initialValue: column.title,
         );
         if (name != null) await dao.renameColumn(columnId, name);
@@ -240,18 +241,16 @@ class _BoardPageState extends ConsumerState<BoardPage> {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete column?'),
-            content: Text(
-              'Tasks in "${column.title}" will be moved to the first column.',
-            ),
+            title: Text(context.l10n.boardDeleteColumnQuestion),
+            content: Text(context.l10n.boardDeleteColumnBody(column.title)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(context.l10n.cancel),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(context.l10n.delete),
               ),
             ],
           ),
@@ -267,9 +266,9 @@ class _BoardPageState extends ConsumerState<BoardPage> {
   ) async {
     final name = await showTextPrompt(
       context,
-      title: 'New column',
-      hint: 'Review',
-      confirmLabel: 'Create',
+      title: context.l10n.boardNewColumn,
+      hint: context.l10n.boardColumnHint,
+      confirmLabel: context.l10n.create,
     );
     if (name == null) return;
     await ref
@@ -287,7 +286,7 @@ class _BoardSwitcher extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return PopupMenuButton<int>(
-      tooltip: 'Switch board',
+      tooltip: context.l10n.boardSwitch,
       onSelected: (value) async {
         if (value == -1) {
           await _createBoard(context, ref);
@@ -315,23 +314,23 @@ class _BoardSwitcher extends ConsumerWidget {
             ),
           ),
         const PopupMenuDivider(),
-        const PopupMenuItem(
+        PopupMenuItem(
           value: -1,
           child: ListTile(
             dense: true,
             contentPadding: EdgeInsets.zero,
-            leading: Icon(Icons.add),
-            title: Text('New board'),
+            leading: const Icon(Icons.add),
+            title: Text(context.l10n.boardNewBoard),
           ),
         ),
         if (boards.length > 1)
-          const PopupMenuItem(
+          PopupMenuItem(
             value: -2,
             child: ListTile(
               dense: true,
               contentPadding: EdgeInsets.zero,
-              leading: Icon(Icons.delete_outline),
-              title: Text('Delete this board'),
+              leading: const Icon(Icons.delete_outline),
+              title: Text(context.l10n.boardDeleteBoard),
             ),
           ),
       ],
@@ -348,10 +347,10 @@ class _BoardSwitcher extends ConsumerWidget {
   Future<void> _createBoard(BuildContext context, WidgetRef ref) async {
     final name = await showTextPrompt(
       context,
-      title: 'New board',
-      label: 'Name',
-      hint: 'Work',
-      confirmLabel: 'Create',
+      title: context.l10n.boardNewBoard,
+      label: context.l10n.name,
+      hint: context.l10n.boardHint,
+      confirmLabel: context.l10n.create,
     );
     if (name == null) return;
     final id = await ref.read(boardDaoProvider).createBoard(name);
@@ -362,16 +361,16 @@ class _BoardSwitcher extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete "${active.name}"?'),
-        content: const Text('All of its tasks will be deleted too.'),
+        title: Text(context.l10n.boardDeleteBoardQuestion(active.name)),
+        content: Text(context.l10n.boardDeleteBoardBody),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),

@@ -1,0 +1,438 @@
+{
+  "appTitle": "GTD",
+  "cancel": "Cancel",
+  "delete": "Delete",
+  "save": "Save",
+  "create": "Create",
+  "close": "Close",
+  "remove": "Remove",
+  "title": "Title",
+  "notes": "Notes",
+  "name": "Name",
+  "undo": "Undo",
+  "search": "Search",
+  "settings": "Settings",
+  "today": "Today",
+  "tomorrow": "Tomorrow",
+  "noDate": "No date",
+  "pickDate": "Pick a date…",
+  "navBoard": "Board",
+  "navTodos": "Todos",
+  "navCalendar": "Calendar",
+  "kanbanAddTask": "Add task",
+  "kanbanColumnOptions": "Column options",
+  "kanbanDropHere": "Drop tasks here",
+  "kanbanNoTasks": "No tasks",
+  "kanbanTaskCount": "{count}",
+  "@kanbanTaskCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    },
+    "description": "Number of tasks in the column"
+  },
+  "kanbanTaskCountDescription": "Number of tasks in the column",
+  "boardTitle": "Board",
+  "boardNoSelection": "No board selected",
+  "boardAddColumn": "Add column",
+  "boardNewTask": "New task",
+  "boardRenameColumn": "Rename column",
+  "boardMarkActive": "Mark as active column",
+  "boardMarkDone": "Mark as done column",
+  "boardMoveLeft": "Move left",
+  "boardMoveRight": "Move right",
+  "boardDeleteColumn": "Delete column",
+  "boardDeleteColumnHint": "Tasks move to the first column",
+  "boardDeleteColumnQuestion": "Delete column?",
+  "boardDeleteColumnBody": "Tasks in \"{column}\" will be moved to the first column.",
+  "@boardDeleteColumnBody": {
+    "placeholders": {
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "boardNewColumn": "New column",
+  "boardColumnHint": "Review",
+  "boardSwitch": "Switch board",
+  "boardNewBoard": "New board",
+  "boardDeleteBoard": "Delete this board",
+  "boardHint": "Work",
+  "boardDeleteBoardQuestion": "Delete \"{name}\"?",
+  "@boardDeleteBoardQuestion": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "boardDeleteBoardBody": "All of its tasks will be deleted too.",
+  "boardDeleteColumnConfirm": "Delete",
+  "boardNewCard": "New card",
+  "boardAddCard": "Add card",
+  "dueLabel": "Due {date}",
+  "@dueLabel": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "todosTitle": "Todos",
+  "todosMore": "More",
+  "todosDetailedTask": "Detailed task",
+  "todosPasteList": "Paste list",
+  "todosAddTask": "Add a task",
+  "todosDeletedTask": "Deleted \"{title}\"",
+  "@todosDeletedTask": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "todosClipboardEmpty": "Clipboard is empty",
+  "todosAddedTask": "Added \"{title}\"",
+  "@todosAddedTask": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "todosAddedTasks": "Added {count} tasks",
+  "@todosAddedTasks": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todosFilterAll": "All",
+  "todosFilterToday": "Today",
+  "todosFilterUpcoming": "Upcoming",
+  "todosFilterAnytime": "Anytime",
+  "todosFilterDone": "Done",
+  "todosGroupOverdue": "Overdue",
+  "todosGroupToday": "Today",
+  "todosGroupTomorrow": "Tomorrow",
+  "todosGroupUpcoming": "Upcoming",
+  "todosGroupLater": "Later",
+  "todosGroupAnytime": "Anytime",
+  "todosGroupCompleted": "Completed",
+  "todosEmptyCompleted": "Nothing completed yet.",
+  "todosEmpty": "Nothing here. Type above to add a task.",
+  "todosDeleteTask": "Delete task?",
+  "todosDeleteTaskBody": "\"{title}\" will be removed permanently.",
+  "@todosDeleteTaskBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarTitle": "Calendar",
+  "calendarToday": "Today",
+  "calendarMonth": "Month",
+  "calendarTwoWeeks": "2 weeks",
+  "calendarWeek": "Week",
+  "calendarNewEvent": "New event",
+  "calendarNothingScheduled": "Nothing scheduled",
+  "calendarAddEntry": "Add an entry",
+  "calendarAllDay": "All day",
+  "calendarTaskCount": "{count, plural, =0{No tasks} =1{1 task} other{{count} tasks}}",
+  "@calendarTaskCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "calendarTask": "Task",
+  "calendarTaskWithTime": "Task · {time}",
+  "@calendarTaskWithTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "calendarEventsForTask": "Linked events",
+  "eventEditTitle": "Edit event",
+  "eventNewTitle": "New event",
+  "eventStarts": "Starts",
+  "eventEnds": "Ends",
+  "eventRepeat": "Repeat",
+  "eventRepeatNone": "Does not repeat",
+  "eventRepeatDaily": "Every day",
+  "eventRepeatWeekly": "Every week",
+  "eventRepeatMonthly": "Every month",
+  "eventUntil": "Until {date}",
+  "@eventUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "eventNoEndDate": "No end date",
+  "eventClearEndDate": "Clear end date",
+  "eventLinkTask": "Link a task",
+  "eventUnlinkTask": "Unlink task",
+  "eventLinkToTask": "Link to a task",
+  "eventSearchTasks": "Search tasks",
+  "eventNoTask": "No task",
+  "eventNoMatchingTasks": "No matching tasks",
+  "eventDeleteQuestion": "Delete event?",
+  "eventDeleteOne": "\"{title}\" will be removed.",
+  "@eventDeleteOne": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "eventDeleteSeries": "\"{title}\" and all of its repetitions will be removed.",
+  "@eventDeleteSeries": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "eventAllDay": "All day",
+  "taskEditTitle": "Edit task",
+  "taskNewTitle": "New task",
+  "taskPriority": "Priority",
+  "taskPriorityLow": "Low",
+  "taskPriorityMedium": "Medium",
+  "taskPriorityHigh": "High",
+  "taskPriorityUrgent": "Urgent",
+  "taskAddDueDate": "Add due date",
+  "taskAddTime": "Add time",
+  "taskClearDueDate": "Clear due date",
+  "taskColumn": "Column",
+  "taskCompleted": "Completed",
+  "taskLinkedEvents": "LINKED EVENTS",
+  "taskNoLinkedEvents": "No calendar event linked to this task yet.",
+  "taskNewEventShort": "New event",
+  "taskDeleteQuestion": "Delete task?",
+  "taskDeleteBody": "\"{title}\" will be removed permanently.",
+  "@taskDeleteBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "taskReminder": "Remind me",
+  "taskReminderNone": "No reminder",
+  "taskReminderAtDue": "At the due time",
+  "taskReminderNeedsDue": "Set a due date first",
+  "taskReminderBefore": "{label} before",
+  "@taskReminderBefore": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "taskReminderBody": "{title} is due",
+  "@taskReminderBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddHint": "Add a task",
+  "quickAddAction": "Add task",
+  "quickAddDone": "Done adding",
+  "quickAddClearParsed": "Clear recognised date",
+  "quickAddDueDate": "Set due date",
+  "quickAddAddedOne": "Added \"{title}\"",
+  "@quickAddAddedOne": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "quickAddAddedMany": "Added {count} tasks",
+  "@quickAddAddedMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsTitle": "Settings",
+  "settingsSwipe": "Swipe actions",
+  "settingsSwipeRight": "Swipe right",
+  "settingsSwipeRightHint": "On a task in the Todos list",
+  "settingsSwipeLeft": "Swipe left",
+  "settingsReminders": "Reminders",
+  "settingsDailyReminder": "Daily reminder",
+  "settingsDailyReminderHint": "A notification at your chosen time",
+  "settingsNotificationsUnsupported": "Not available in the browser build",
+  "settingsReminderTime": "Reminder time",
+  "settingsCalendarSync": "Calendar sync",
+  "settingsBackup": "Backup",
+  "settingsExport": "Export",
+  "settingsExportHint": "Save boards, tasks and events as JSON",
+  "settingsImport": "Import",
+  "settingsImportHint": "Replace everything with a backup file",
+  "settingsAbout": "About",
+  "settingsVersion": "Version",
+  "settingsLicenses": "Licenses",
+  "settingsLicensesHint": "Open source packages used by GTD",
+  "settingsDeviceCalendar": "Device calendar",
+  "settingsOnlyAndroid": "Only available on Android",
+  "settingsDeviceCalendarHint": "Mirror events into a device calendar",
+  "settingsSyncNow": "Sync now",
+  "settingsNotSyncedYet": "Not synced yet",
+  "settingsLastSynced": "Last synced {time}",
+  "@settingsLastSynced": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsRemoveSynced": "Remove synced events",
+  "settingsRemoveSyncedHint": "Delete the copies this app created",
+  "settingsCalendarPermissionDenied": "Calendar permission denied",
+  "settingsNoWritableCalendar": "No writable calendar",
+  "settingsNoWritableCalendarBody": "This device has no calendar this app can write to. Create a local \"GTD\" calendar?",
+  "settingsCouldNotCreateCalendar": "Could not create a calendar",
+  "settingsCalendarError": "Calendar error: {error}",
+  "@settingsCalendarError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCalendarSynced": "Calendar synced: {summary}",
+  "@settingsCalendarSynced": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsSyncFailed": "Sync failed: {error}",
+  "@settingsSyncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsRemoveSyncedQuestion": "Remove synced events?",
+  "settingsRemoveSyncedBody": "The copies in your device calendar are deleted. Your GTD events stay in the app.",
+  "settingsRemovedEvents": "Removed {count} event(s)",
+  "@settingsRemovedEvents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsCouldNotRemove": "Could not remove events: {error}",
+  "@settingsCouldNotRemove": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsNotificationDenied": "Notification permission denied",
+  "settingsDailyReminderEnabled": "Daily reminder enabled",
+  "settingsCouldNotEnable": "Could not enable notifications: {error}",
+  "@settingsCouldNotEnable": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCouldNotReschedule": "Could not reschedule reminder: {error}",
+  "@settingsCouldNotReschedule": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsBackupNotSaved": "Backup not saved",
+  "settingsBackupSaved": "Backup saved",
+  "settingsExportFailed": "Export failed: {error}",
+  "@settingsExportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsCouldNotOpenFile": "Could not open file: {error}",
+  "@settingsCouldNotOpenFile": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsReplaceAllQuestion": "Replace all data?",
+  "settingsReplaceAllBody": "Importing a backup deletes the boards, tasks and events that are currently stored on this device.",
+  "settingsImported": "Imported {summary}",
+  "@settingsImported": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsImportFailed": "Import failed: {error}",
+  "@settingsImportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsExportDialogTitle": "Export GTD backup",
+  "settingsImportDialogTitle": "Import GTD backup",
+  "subtasksTitle": "Subtasks",
+  "subtaskAdd": "Add subtask",
+  "subtaskProgress": "{done}/{total}",
+  "@subtaskProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "subtaskEmpty": "No subtasks yet",
+  "tagsTitle": "Tags",
+  "tagAdd": "Add tag",
+  "tagNew": "New tag",
+  "tagName": "Tag name",
+  "tagEmpty": "No tags yet",
+  "tagNoMatches": "No matching tags",
+  "searchHint": "Search tasks, events and tags",
+  "searchTasks": "Tasks",
+  "searchEvents": "Events",
+  "searchNoResults": "Nothing found for \"{query}\"",
+  "@searchNoResults": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  }
+}

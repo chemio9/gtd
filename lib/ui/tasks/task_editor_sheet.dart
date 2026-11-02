@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/date_x.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../calendar/event_editor_sheet.dart';
 
@@ -69,6 +70,14 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
   bool _saving = false;
 
   bool get _isEditing => widget.task != null;
+
+  String _priorityLabel(BuildContext context, TaskPriority priority) =>
+      switch (priority) {
+        TaskPriority.low => context.l10n.taskPriorityLow,
+        TaskPriority.medium => context.l10n.taskPriorityMedium,
+        TaskPriority.high => context.l10n.taskPriorityHigh,
+        TaskPriority.urgent => context.l10n.taskPriorityUrgent,
+      };
 
   @override
   void dispose() {
@@ -184,16 +193,16 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete task?'),
-        content: Text('"${task.title}" will be removed permanently.'),
+        title: Text(context.l10n.taskDeleteQuestion),
+        content: Text(context.l10n.taskDeleteBody(task.title)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.delete),
           ),
         ],
       ),
@@ -223,7 +232,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              _isEditing ? 'Edit task' : 'New task',
+              _isEditing
+                  ? context.l10n.taskEditTitle
+                  : context.l10n.taskNewTitle,
               style: theme.textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -231,9 +242,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               controller: _title,
               autofocus: !_isEditing,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.title,
+                border: const OutlineInputBorder(),
               ),
               onSubmitted: (_) => _save(),
             ),
@@ -243,13 +254,13 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               minLines: 1,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                labelText: 'Notes',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: context.l10n.notes,
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 16),
-            Text('Priority', style: theme.textTheme.labelLarge),
+            Text(context.l10n.taskPriority, style: theme.textTheme.labelLarge),
             const SizedBox(height: 8),
             SegmentedButton<TaskPriority>(
               showSelectedIcon: false,
@@ -257,7 +268,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 for (final priority in TaskPriority.values)
                   ButtonSegment(
                     value: priority,
-                    label: Text(priority.label),
+                    label: Text(_priorityLabel(context, priority)),
                   ),
               ],
               selected: {_priority},
@@ -273,7 +284,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                     icon: const Icon(Icons.event_outlined),
                     label: Text(
                       _dueDate == null
-                          ? 'Add due date'
+                          ? context.l10n.taskAddDueDate
                           : friendlyDay(_dueDate!),
                     ),
                   ),
@@ -288,10 +299,10 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   else
                     OutlinedButton(
                       onPressed: _pickDueTime,
-                      child: const Text('Add time'),
+                      child: Text(context.l10n.taskAddTime),
                     ),
                   IconButton(
-                    tooltip: 'Clear due date',
+                    tooltip: context.l10n.taskClearDueDate,
                     onPressed: () => setState(() => _dueDate = null),
                     icon: const Icon(Icons.close),
                   ),
@@ -304,9 +315,9 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                 initialValue: columns.any((c) => c.id == _columnId)
                     ? _columnId
                     : columns.first.id,
-                decoration: const InputDecoration(
-                  labelText: 'Column',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: context.l10n.taskColumn,
+                  border: const OutlineInputBorder(),
                 ),
                 items: [
                   for (final column in columns)
@@ -322,7 +333,7 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Completed'),
+                title: Text(context.l10n.taskCompleted),
                 value: _completed,
                 onChanged: (value) => setState(() => _completed = value),
               ),
@@ -339,17 +350,19 @@ class _TaskEditorSheetState extends ConsumerState<TaskEditorSheet> {
                   TextButton.icon(
                     onPressed: _delete,
                     icon: const Icon(Icons.delete_outline),
-                    label: const Text('Delete'),
+                    label: Text(context.l10n.delete),
                   ),
                 const Spacer(),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.cancel),
                 ),
                 const SizedBox(width: 8),
                 FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(_isEditing ? 'Save' : 'Create'),
+                  child: Text(
+                    _isEditing ? context.l10n.save : context.l10n.create,
+                  ),
                 ),
               ],
             ),
@@ -385,7 +398,7 @@ class _LinkedEventsSection extends ConsumerWidget {
         Row(
           children: [
             Text(
-              'LINKED EVENTS',
+              context.l10n.taskLinkedEvents,
               style: theme.textTheme.labelMedium?.copyWith(
                 letterSpacing: .8,
                 fontWeight: FontWeight.w700,
@@ -396,7 +409,7 @@ class _LinkedEventsSection extends ConsumerWidget {
             TextButton.icon(
               onPressed: onCreateEvent,
               icon: const Icon(Icons.add, size: 18),
-              label: const Text('New event'),
+              label: Text(context.l10n.taskNewEventShort),
             ),
           ],
         ),
@@ -404,7 +417,7 @@ class _LinkedEventsSection extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'No calendar event linked to this task yet.',
+              context.l10n.taskNoLinkedEvents,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

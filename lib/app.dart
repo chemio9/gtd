@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/calendar_sync.dart';
+import 'l10n/l10n.dart';
 import 'settings/settings.dart';
 import 'ui/board/board_page.dart';
 import 'ui/calendar/calendar_page.dart';
@@ -13,10 +15,17 @@ class GtdApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GTD',
+      onGenerateTitle: (context) => context.l10n.appTitle,
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
+      supportedLocales: AppLocalizations.supportedLocales,
       theme: _theme(Brightness.light),
       darkTheme: _theme(Brightness.dark),
+      builder: (context, child) {
+        // Keep intl date formatting in the same language as the UI.
+        Intl.defaultLocale = Localizations.localeOf(context).toLanguageTag();
+        return child ?? const SizedBox.shrink();
+      },
       home: const HomeShell(),
     );
   }
@@ -70,21 +79,21 @@ class _HomeShellState extends State<HomeShell> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (index) => setState(() => _index = index),
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.view_kanban_outlined),
-            selectedIcon: Icon(Icons.view_kanban),
-            label: 'Board',
+            icon: const Icon(Icons.view_kanban_outlined),
+            selectedIcon: const Icon(Icons.view_kanban),
+            label: context.l10n.navBoard,
           ),
           NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist),
-            label: 'Todos',
+            icon: const Icon(Icons.checklist_outlined),
+            selectedIcon: const Icon(Icons.checklist),
+            label: context.l10n.navTodos,
           ),
           NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month),
-            label: 'Calendar',
+            icon: const Icon(Icons.calendar_month_outlined),
+            selectedIcon: const Icon(Icons.calendar_month),
+            label: context.l10n.navCalendar,
           ),
         ],
       ),

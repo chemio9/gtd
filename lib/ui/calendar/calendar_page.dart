@@ -5,6 +5,7 @@ import 'package:table_calendar/table_calendar.dart' hide isSameDay;
 import '../../core/date_x.dart';
 import '../../core/recurrence.dart';
 import '../../data/database.dart';
+import '../../l10n/l10n.dart';
 import '../../providers.dart';
 import '../settings/settings_button.dart';
 import '../tasks/task_editor_sheet.dart';
@@ -81,10 +82,10 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendar'),
+        title: Text(context.l10n.calendarTitle),
         actions: [
           IconButton(
-            tooltip: 'Today',
+            tooltip: context.l10n.calendarToday,
             onPressed: () => ref
                 .read(calendarFocusedDayProvider.notifier)
                 .set(DateTime.now()),
@@ -100,10 +101,10 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
             lastDay: DateTime(DateTime.now().year + 6),
             focusedDay: focusedDay,
             calendarFormat: _format,
-            availableCalendarFormats: const {
-              CalendarFormat.month: 'Month',
-              CalendarFormat.twoWeeks: '2 weeks',
-              CalendarFormat.week: 'Week',
+            availableCalendarFormats: {
+              CalendarFormat.month: context.l10n.calendarMonth,
+              CalendarFormat.twoWeeks: context.l10n.calendarTwoWeeks,
+              CalendarFormat.week: context.l10n.calendarWeek,
             },
             startingDayOfWeek: StartingDayOfWeek.monday,
             availableGestures: AvailableGestures.horizontalSwipe,
@@ -185,7 +186,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
                 ),
                 const Spacer(),
                 Text(
-                  '${tasksDue.length} task${tasksDue.length == 1 ? '' : 's'}',
+                  context.l10n.calendarTaskCount(tasksDue.length),
                   style: theme.textTheme.labelSmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -205,7 +206,7 @@ class _CalendarPageState extends ConsumerState<CalendarPage> {
         heroTag: 'calendar-fab',
         onPressed: () => showEventEditor(context, initialDay: focusedDay),
         icon: const Icon(Icons.event),
-        label: const Text('New event'),
+        label: Text(context.l10n.calendarNewEvent),
       ),
     );
   }
@@ -233,7 +234,7 @@ class _AgendaList extends ConsumerWidget {
             ),
             const SizedBox(height: 10),
             Text(
-              'Nothing scheduled',
+              context.l10n.calendarNothingScheduled,
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -242,7 +243,7 @@ class _AgendaList extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: () => showEventEditor(context, initialDay: day),
               icon: const Icon(Icons.add),
-              label: const Text('Add an entry'),
+              label: Text(context.l10n.calendarAddEntry),
             ),
           ],
         ),
@@ -275,7 +276,7 @@ class _EventTile extends ConsumerWidget {
     final scheme = theme.colorScheme;
     final event = occurrence.event;
     final timeLabel = event.allDay
-        ? 'All day'
+        ? context.l10n.calendarAllDay
         : '${formatTime(occurrence.start)} – ${formatTime(occurrence.end)}';
     final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
     final linkedTask = event.linkedTaskId == null
@@ -401,8 +402,10 @@ class _TaskEntryTile extends ConsumerWidget {
             const SizedBox(width: 4),
             Text(
               task.dueDate == null || !hasTimeOfDay(task.dueDate!)
-                  ? 'Task'
-                  : 'Task · ${formatTime(task.dueDate!)}',
+                  ? context.l10n.calendarTask
+                  : context.l10n.calendarTaskWithTime(
+                      formatTime(task.dueDate!),
+                    ),
               style: theme.textTheme.bodySmall,
             ),
           ],

@@ -87,50 +87,53 @@ class TodoFilterNotifier extends Notifier<TodoFilter> {
   void set(TodoFilter filter) => state = filter;
 }
 
+/// Buckets shown in the todo list. The UI localizes the label.
+enum TodoGroup { overdue, today, tomorrow, upcoming, later, anytime, completed }
+
 /// Tasks grouped by the bucket shown in the todo list.
-final groupedTodosProvider = Provider<Map<String, List<Task>>>((ref) {
+final groupedTodosProvider = Provider<Map<TodoGroup, List<Task>>>((ref) {
   final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
   final filter = ref.watch(todoFilterProvider);
   final today = dateOnly(DateTime.now());
-  final groups = <String, List<Task>>{};
+  final groups = <TodoGroup, List<Task>>{};
 
-  void add(String key, Task task) =>
+  void add(TodoGroup key, Task task) =>
       groups.putIfAbsent(key, () => <Task>[]).add(task);
 
   for (final task in tasks) {
     final done = task.completedAt != null;
     if (filter == TodoFilter.done) {
-      if (done) add('Completed', task);
+      if (done) add(TodoGroup.completed, task);
       continue;
     }
     if (done) continue;
     final due = task.dueDate == null ? null : dateOnly(task.dueDate!);
     switch (filter) {
       case TodoFilter.today:
-        if (due != null && !due.isAfter(today)) add('Today', task);
+        if (due != null && !due.isAfter(today)) add(TodoGroup.today, task);
       case TodoFilter.upcoming:
-        if (due != null && due.isAfter(today)) add('Upcoming', task);
+        if (due != null && due.isAfter(today)) add(TodoGroup.upcoming, task);
       case TodoFilter.anytime:
-        if (due == null) add('Anytime', task);
+        if (due == null) add(TodoGroup.anytime, task);
       case TodoFilter.all:
         if (due == null) {
-          add('Anytime', task);
+          add(TodoGroup.anytime, task);
         } else if (due.isBefore(today)) {
-          add('Overdue', task);
+          add(TodoGroup.overdue, task);
         } else if (due == today) {
-          add('Today', task);
+          add(TodoGroup.today, task);
         } else if (due == today.add(const Duration(days: 1))) {
-          add('Tomorrow', task);
+          add(TodoGroup.tomorrow, task);
         } else {
-          add('Later', task);
+          add(TodoGroup.later, task);
         }
       case TodoFilter.done:
         break;
     }
   }
 
-  const order = ['Overdue', 'Today', 'Tomorrow', 'Upcoming', 'Later', 'Anytime', 'Completed'];
-  final ordered = <String, List<Task>>{};
+  const order = TodoGroup.values;
+  final ordered = <TodoGroup, List<Task>>{};
   for (final key in order) {
     final value = groups[key];
     if (value == null || value.isEmpty) continue;

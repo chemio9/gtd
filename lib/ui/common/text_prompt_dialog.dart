@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// Small single-field prompt used for creating/renaming boards and columns.
 ///
 /// Returns the trimmed value, or `null` when the user cancels.
@@ -7,7 +9,7 @@ Future<String?> showTextPrompt(
   BuildContext context, {
   required String title,
   String? initialValue,
-  String label = 'Title',
+  String? label,
   String? hint,
   String confirmLabel = 'Save',
 }) {
@@ -33,7 +35,7 @@ class _TextPromptDialog extends StatefulWidget {
   });
 
   final String title;
-  final String label;
+  final String? label;
   final String confirmLabel;
   final String? initialValue;
   final String? hint;
@@ -67,13 +69,16 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
         controller: _controller,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(labelText: widget.label, hintText: widget.hint),
+        decoration: InputDecoration(
+          labelText: widget.label ?? context.l10n.title,
+          hintText: widget.hint,
+        ),
         onSubmitted: (_) => _submit(),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.cancel),
         ),
         FilledButton(
           onPressed: _submit,

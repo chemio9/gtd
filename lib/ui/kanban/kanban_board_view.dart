@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/l10n.dart';
+
 /// One column of a [KanbanBoardView].
 @immutable
 class KanbanColumn<T extends Object> {
@@ -382,13 +384,13 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
-              '${column.items.length}',
+              context.l10n.kanbanTaskCount(column.items.length),
               style: theme.textTheme.labelSmall,
             ),
           ),
           if (onAddItem != null)
             IconButton(
-              tooltip: 'Add task',
+              tooltip: context.l10n.kanbanAddTask,
               iconSize: 18,
               visualDensity: VisualDensity.compact,
               onPressed: () => onAddItem!(column),
@@ -396,7 +398,7 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
             ),
           if (onColumnMenu != null)
             IconButton(
-              tooltip: 'Column options',
+              tooltip: context.l10n.kanbanColumnOptions,
               iconSize: 18,
               visualDensity: VisualDensity.compact,
               onPressed: () => onColumnMenu!(context, column),
@@ -432,7 +434,7 @@ class _KanbanColumnView<T extends Object> extends StatelessWidget {
               child:
                   emptyBuilder?.call(context) ??
                   Text(
-                    'Drop tasks here',
+                    context.l10n.kanbanDropHere,
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
             ),
