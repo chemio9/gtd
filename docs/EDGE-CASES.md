@@ -90,7 +90,35 @@ Use this as a checklist when touching the related area.
 | Subtask order | `position`, then `id` as a tiebreaker | `SubtaskDao.watchForTask`, `subtasksByTaskProvider` |
 | Tag palette | Cycles through 8 colours by existing tag count | `tagPalette` |
 
-## 7. Reminders & notifications
+## 7. Todo list organization
+
+### Grouping
+
+| Case | Behaviour | Where |
+|---|---|---|
+| Task with no tag | Lands in the *Uncategorized* section, rendered last | `subjectTodosProvider` |
+| Task with several tags | Appears once per subject section (intentional duplication) | `subjectTodosProvider` |
+| Subject order | Alphabetical by tag name, uncategorized always last | `subjectTodosProvider` |
+| Tag renamed or deleted | Section title/colour follow the tag; links vanish with the tag (FK cascade) | `tagsProvider`, FK |
+| Collapsing a section | Only hides its rows; the header and count stay, state survives rebuilds | `collapsedTodoSubjectsProvider` |
+| Pinning a subject | Long-press the header; several subjects can be pinned at once; empty set = all | `todoSubjectFilterProvider` |
+| Pinned subject with no tasks | Its section simply disappears; the "Show all subjects" chip remains | todos page |
+| Grouping switch | Toolbar toggle swaps subject/day grouping; the filter chips stay | `todoGroupingProvider` |
+
+### Batch actions
+
+| Case | Behaviour | Where |
+|---|---|---|
+| Selecting a row | Long-press enters multi-select with that row; swiping is disabled while selecting | `TaskTile.selectionMode` |
+| Tapping while selecting | Toggles the row instead of opening the editor | `_openTask` |
+| Deselecting the last row | Exits selection mode automatically | `_toggleSelected` |
+| Batch due date | One transaction; choosing *Remove due date* also clears each reminder | `TaskDao.setDueDates` |
+| Batch complete | Only tasks whose state differs are touched, so positions are not rewritten twice | `TaskDao.setCompletedMany` |
+| Batch delete | Asks for confirmation first (no undo: cascaded subtasks cannot be restored) | todos page |
+| Batch tags | Tags are **added**, existing tags are kept (unlike the editor's replace semantics) | `TagDao.attach` |
+| Select all | Uses the visible, de-duplicated rows of the active grouping | todos page |
+
+## 8. Reminders & notifications
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -106,7 +134,7 @@ Use this as a checklist when touching the related area.
 | Platform failure | `try/catch` around the whole sync; notifications are best-effort | `HomeShell`, `NotificationService` |
 | Snackbar with undo | Must pass `persist: false`; Material defaults `persist` to `action != null` | `todos_page.dart` |
 
-## 8. Device calendar sync
+## 9. Device calendar sync
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -122,7 +150,7 @@ Use this as a checklist when touching the related area.
 | Unlinking | `unlinkAll()` deletes mapped device copies and clears the mapping | settings page |
 | Timezone | Current IANA zone at sync time, `"UTC"` fallback if the lookup times out | `TimeZoneService` |
 
-## 9. Backup & restore
+## 10. Backup & restore
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -137,7 +165,7 @@ Use this as a checklist when touching the related area.
 | Cancelled file picker | No-op | settings page |
 | Import while a board is selected | Selection reset so the UI re-resolves the active board | settings page |
 
-## 10. Migrations & foreign keys
+## 11. Migrations & foreign keys
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -149,7 +177,7 @@ Use this as a checklist when touching the related area.
 | Task deletion | Cascades subtasks/links, nulls `events.linked_task_id` | FK actions |
 | Migration test | Build current schema → drop new columns/tables → set `user_version` → reopen (see `test/event_task_link_test.dart`) | tests |
 
-## 11. Localization
+## 12. Localization
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -159,7 +187,7 @@ Use this as a checklist when touching the related area.
 | Date formatting | `Intl.defaultLocale` follows the app locale | `app.dart` builder |
 | Language switch | Follows the system locale; no in-app override (yet) | `MaterialApp` |
 
-## 12. Search
+## 13. Search
 
 | Case | Behaviour | Where |
 |---|---|---|
@@ -170,7 +198,7 @@ Use this as a checklist when touching the related area.
 | No hits | Localized "Nothing found for …" | search page |
 | Tag/subtask changes | Search results update because it watches the same providers | search page |
 
-## 13. Platform & build
+## 14. Platform & build
 
 | Case | Behaviour | Where |
 |---|---|---|

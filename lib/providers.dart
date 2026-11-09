@@ -90,34 +90,111 @@ class TodoFilterNotifier extends Notifier<TodoFilter> {
   void set(TodoFilter filter) => state = filter;
 }
 
-/// Buckets shown in the todo list. The UI localizes the label.
-enum TodoGroup { overdue, today, tomorrow, upcoming, later, anytime, completed }
+/// How the todo list groups its tasks.
+enum TodoGrouping { subject, day }
 
-/// Tasks grouped by the bucket shown in the todo list.
-final groupedTodosProvider = Provider<Map<TodoGroup, List<Task>>>((ref) {
+final todoGroupingProvider =
+    NotifierProvider<TodoGroupingNotifier, TodoGrouping>(
+      TodoGroupingNotifier.new,
+    );
+
+class TodoGroupingNotifier extends Notifier<TodoGrouping> {
+  @override
+  TodoGrouping build() => TodoGrouping.subject;
+
+  void set(TodoGrouping grouping) => state = grouping;
+}
+
+/// Subject tags the list is pinned to. Empty means "every subject".
+///
+/// `null` inside the set stands for the uncategorized group.
+final todoSubjectFilterProvider = NotifierProvider<TodoSubjectFilter, Set<int?>>(
+  TodoSubjectFilter.new,
+);
+
+class TodoSubjectFilter extends Notifier<Set<int?>> {
+  @override
+  Set<int?> build() => const {};
+
+  void toggle(int? tagId) {
+    final next = {...state};
+    if (!next.remove(tagId)) next.add(tagId);
+    state = next;
+  }
+
+  void clear() => state = const {};
+}
+
+/// Subject groups currently collapsed in the list.
+final collapsedTodoSubjectsProvider =
+    NotifierProvider<CollapsedTodoSubjects, Set<int?>>(
+      CollapsedTodoSubjects.new,
+    );
+
+class CollapsedTodoSubjects extends Notifier<Set<int?>> {
+  @override
+  Set<int?> build() => const {};
+
+  void toggle(int? tagId) {
+    final next = {...state};
+    if (!next.remove(tagId)) next.add(tagId);
+    state = next;
+  }
+}
+
+/// Tasks that survive the active [TodoFilter], in list order.
+final filteredTodoTasksProvider = Provider<List<Task>>((ref) {
   final tasks = ref.watch(allTasksProvider).value ?? const <Task>[];
   final filter = ref.watch(todoFilterProvider);
   final today = dateOnly(DateTime.now());
+
+  return [
+    for (final task in tasks)
+      if (_matchesTodoFilter(task, filter, today)) task,
+  ];
+});
+
+bool _matchesTodoFilter(Task task, TodoFilter filter, DateTime today) {
+  final done = task.completedAt != null;
+  if (filter == TodoFilter.done) return done;
+  if (done) return false;
+  final due = task.dueDate == null ? null : dateOnly(task.dueDate!);
+  return switch (filter) {
+    TodoFilter.all => true,
+    TodoFilter.today => due != null && !due.isAfter(today),
+    TodoFilter.upcoming => due != null && due.isAfter(today),
+    TodoFilter.anytime => due == null,
+    TodoFilter.done => false,
+  };
+}
+
+/// Buckets shown in the day-grouped todo list. The UI localizes the label.
+enum TodoGroup { overdue, today, tomorrow, upcoming, later, anytime, completed }
+
+/// Tasks grouped by due bucket.
+final groupedTodosProvider = Provider<Map<TodoGroup, List<Task>>>((ref) {
+  final tasks = ref.watch(filteredTodoTasksProvider);
+  final filter = ref.watch(todoFilterProvider);
+  final today = dateOnly(DateTime.now());
+  final tomorrow = today.add(const Duration(days: 1));
   final groups = <TodoGroup, List<Task>>{};
 
   void add(TodoGroup key, Task task) =>
       groups.putIfAbsent(key, () => <Task>[]).add(task);
 
   for (final task in tasks) {
-    final done = task.completedAt != null;
     if (filter == TodoFilter.done) {
-      if (done) add(TodoGroup.completed, task);
+      add(TodoGroup.completed, task);
       continue;
     }
-    if (done) continue;
     final due = task.dueDate == null ? null : dateOnly(task.dueDate!);
     switch (filter) {
       case TodoFilter.today:
-        if (due != null && !due.isAfter(today)) add(TodoGroup.today, task);
+        add(TodoGroup.today, task);
       case TodoFilter.upcoming:
-        if (due != null && due.isAfter(today)) add(TodoGroup.upcoming, task);
+        add(TodoGroup.upcoming, task);
       case TodoFilter.anytime:
-        if (due == null) add(TodoGroup.anytime, task);
+        add(TodoGroup.anytime, task);
       case TodoFilter.all:
         if (due == null) {
           add(TodoGroup.anytime, task);
@@ -125,7 +202,7 @@ final groupedTodosProvider = Provider<Map<TodoGroup, List<Task>>>((ref) {
           add(TodoGroup.overdue, task);
         } else if (due == today) {
           add(TodoGroup.today, task);
-        } else if (due == today.add(const Duration(days: 1))) {
+        } else if (due == tomorrow) {
           add(TodoGroup.tomorrow, task);
         } else {
           add(TodoGroup.later, task);
@@ -135,12 +212,51 @@ final groupedTodosProvider = Provider<Map<TodoGroup, List<Task>>>((ref) {
     }
   }
 
-  const order = TodoGroup.values;
   final ordered = <TodoGroup, List<Task>>{};
-  for (final key in order) {
+  for (final key in TodoGroup.values) {
     final value = groups[key];
     if (value == null || value.isEmpty) continue;
     ordered[key] = value;
+  }
+  return ordered;
+});
+
+/// Tasks grouped by subject tag.
+///
+/// A task carrying several tags appears once per tag. Tasks without any tag
+/// land in the `null` group, which always renders last.
+final subjectTodosProvider = Provider<Map<int?, List<Task>>>((ref) {
+  final tasks = ref.watch(filteredTodoTasksProvider);
+  final byTask = ref.watch(taskTagsProvider);
+  final tags = ref.watch(tagsProvider).value ?? const <Tag>[];
+  final filter = ref.watch(todoSubjectFilterProvider);
+  final tagById = {for (final tag in tags) tag.id: tag};
+
+  final groups = <int?, List<Task>>{};
+  for (final task in tasks) {
+    final subjects = byTask[task.id] ?? const <Tag>[];
+    if (subjects.isEmpty) {
+      groups.putIfAbsent(null, () => <Task>[]).add(task);
+      continue;
+    }
+    for (final subject in subjects) {
+      groups.putIfAbsent(subject.id, () => <Task>[]).add(task);
+    }
+  }
+
+  // Alphabetical subjects first, then the uncategorized bucket.
+  final subjectIds = groups.keys.whereType<int>().toList()
+    ..sort(
+      (a, b) => (tagById[a]?.name ?? '').compareTo(tagById[b]?.name ?? ''),
+    );
+  final ordered = <int?, List<Task>>{};
+  for (final id in subjectIds) {
+    if (filter.isNotEmpty && !filter.contains(id)) continue;
+    ordered[id] = groups[id]!;
+  }
+  if (filter.isEmpty || filter.contains(null)) {
+    final uncategorized = groups[null];
+    if (uncategorized != null) ordered[null] = uncategorized;
   }
   return ordered;
 });

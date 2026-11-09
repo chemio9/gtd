@@ -226,17 +226,24 @@ class TaskTile extends StatelessWidget {
     required this.task,
     required this.onToggle,
     this.onTap,
+    this.onLongPress,
     this.startAction = SwipeAction.toggleComplete,
     this.endAction = SwipeAction.delete,
     this.onSwipeAction,
     this.hasLinkedEvent = false,
     this.tags = const [],
     this.subtaskProgress,
+    this.selectionMode = false,
+    this.selected = false,
+    this.onSelectedChanged,
   });
 
   final Task task;
   final ValueChanged<bool> onToggle;
   final VoidCallback? onTap;
+
+  /// Starts multi-selection; the host decides what that means.
+  final VoidCallback? onLongPress;
 
   /// Action revealed when swiping towards the end (left in LTR).
   final SwipeAction startAction;
@@ -252,6 +259,12 @@ class TaskTile extends StatelessWidget {
   final List<Tag> tags;
   final ({int done, int total})? subtaskProgress;
 
+  /// While selecting, the leading checkbox picks rows instead of completing
+  /// them, and swiping is disabled so panes cannot fight the selection.
+  final bool selectionMode;
+  final bool selected;
+  final ValueChanged<bool>? onSelectedChanged;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -263,16 +276,27 @@ class TaskTile extends StatelessWidget {
 
     return Slidable(
       key: ValueKey('task-${task.id}'),
+      enabled: !selectionMode,
       startActionPane: _pane(scheme, startAction),
       endActionPane: _pane(scheme, endAction),
       child: ListTile(
         onTap: onTap,
+        onLongPress: onLongPress,
+        tileColor: selectionMode && selected
+            ? scheme.primaryContainer.withValues(alpha: .35)
+            : null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-        leading: Checkbox(
-          value: done,
-          onChanged: (value) => onToggle(value ?? false),
-          shape: const CircleBorder(),
-        ),
+        leading: selectionMode
+            ? Checkbox(
+                value: selected,
+                onChanged: (value) => onSelectedChanged?.call(value ?? false),
+                shape: const CircleBorder(),
+              )
+            : Checkbox(
+                value: done,
+                onChanged: (value) => onToggle(value ?? false),
+                shape: const CircleBorder(),
+              ),
         title: Text(
           task.title,
           maxLines: 2,

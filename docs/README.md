@@ -27,5 +27,5 @@
    `shared_preferences`; backups are one versioned JSON document.
 9. All UI text flows through `context.l10n` (en + zh), enforced by an ARB parity
    test.
-10. Behaviour ships with tests: 117 cases, real widgets, in-memory drift,
+10. Behaviour ships with tests: 126 cases, real widgets, in-memory drift,
     mocked channels.

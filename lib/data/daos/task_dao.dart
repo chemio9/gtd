@@ -102,6 +102,51 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     return (delete(tasks)..where((t) => t.id.equals(id))).go();
   }
 
+  /// Sets (or clears) the due date of several tasks at once.
+  ///
+  /// Clearing the date also clears the reminder, mirroring the editor.
+  Future<void> setDueDates(Iterable<int> ids, DateTime? due) async {
+    final list = ids.toList();
+    if (list.isEmpty) return;
+    final now = DateTime.now();
+    await transaction(() async {
+      for (final id in list) {
+        await (update(tasks)..where((t) => t.id.equals(id))).write(
+          TasksCompanion(
+            dueDate: Value(due),
+            reminderMinutesBefore:
+                due == null ? const Value(null) : const Value.absent(),
+            updatedAt: Value(now),
+          ),
+        );
+      }
+    });
+  }
+
+  /// Completes (or reopens) several tasks, honouring each task's done column.
+  /// Tasks that already match [completed] are left untouched.
+  Future<void> setCompletedMany(
+    Iterable<Task> tasks, {
+    required bool completed,
+  }) async {
+    final pending = [
+      for (final task in tasks)
+        if ((task.completedAt != null) != completed) task,
+    ];
+    if (pending.isEmpty) return;
+    await transaction(() async {
+      for (final task in pending) {
+        await setCompleted(task, completed: completed);
+      }
+    });
+  }
+
+  Future<void> deleteTasks(Iterable<int> ids) async {
+    final list = ids.toList();
+    if (list.isEmpty) return;
+    await (delete(tasks)..where((t) => t.id.isIn(list))).go();
+  }
+
   Future<void> setCompleted(Task task, {required bool completed}) async {
     if (completed) {
       // Move the task into the board's done column when there is one.

@@ -727,4 +727,86 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get subtaskEdit => '编辑子任务';
+
+  @override
+  String get todosGroupBySubject => '按科目分组';
+
+  @override
+  String get todosGroupByDay => '按截止日期分组';
+
+  @override
+  String get todosUncategorized => '未分类';
+
+  @override
+  String get todosFilterBySubject => '只看这一科';
+
+  @override
+  String get todosShowAllSubjects => '显示全部科目';
+
+  @override
+  String get todosSelectTasks => '选择任务';
+
+  @override
+  String todosSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已选 $count 项',
+      one: '已选 1 项',
+      zero: '未选择任务',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get todosSelectAll => '全选';
+
+  @override
+  String get todosClearSelection => '取消';
+
+  @override
+  String get todosBulkToday => '今天';
+
+  @override
+  String get todosBulkTomorrow => '明天';
+
+  @override
+  String get todosBulkPickDate => '选择日期';
+
+  @override
+  String get todosBulkClearDate => '清除日期';
+
+  @override
+  String get todosBulkComplete => '完成';
+
+  @override
+  String get todosBulkReopen => '标记未完成';
+
+  @override
+  String get todosBulkDelete => '删除';
+
+  @override
+  String get todosBulkTags => '添加标签';
+
+  @override
+  String todosBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已更新 $count 项',
+      one: '已更新 1 项',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String todosBulkDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '已删除 $count 项',
+      one: '已删除 1 项',
+    );
+    return '$_temp0';
+  }
 }

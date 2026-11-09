@@ -6,7 +6,7 @@ the invariants that must hold, and the alternatives that were rejected.
 
 - Production Dart: ~8.7k lines across 39 files (`lib/`, excluding generated)
 - Generated: ~6.1k lines (drift + gen-l10n)
-- Tests: ~2.6k lines across 13 files, 117 test cases
+- Tests: ~2.9k lines across 14 files, 126 test cases
 - Native: 278 lines of Kotlin (one MethodChannel)
 - Schema: drift/SQLite, version 4
 - Locales: `en`, `zh-Hans` (216 ARB messages)
@@ -125,8 +125,8 @@ kinds are used, each for a reason:
 | Kind | Example | Why |
 |---|---|---|
 | `StreamProvider` over a DAO watch | `allTasksProvider`, `subtasksForTaskProvider` | Drift re-emits on any write, so the UI never calls `setState` after mutations |
-| `Provider` (derived, synchronous) | `groupedTodosProvider`, `taskTagsProvider`, `subtaskProgressProvider`, `subtaskProgress` | Cheap joins/buckets done once per change instead of per row widget |
-| `NotifierProvider` (UI state) | `selectedBoardIdProvider`, `calendarFocusedDayProvider`, `todoFilterProvider`, `settingsProvider` | Ephemeral view state that must survive tab switches |
+| `Provider` (derived, synchronous) | `groupedTodosProvider`, `filteredTodoTasksProvider`, `subjectTodosProvider`, `taskTagsProvider`, `subtaskProgressProvider` | Cheap joins/buckets done once per change instead of per row widget |
+| `NotifierProvider` (UI state) | `selectedBoardIdProvider`, `calendarFocusedDayProvider`, `todoFilterProvider`, `todoGroupingProvider`, `todoSubjectFilterProvider`, `collapsedTodoSubjectsProvider`, `settingsProvider` | Ephemeral view state that must survive tab switches |
 
 Derived state is preferred over per-widget `FutureBuilder`s: the list rows take
 pre-computed maps (`tags`, `subtaskProgress`, `linkedEvents`) as parameters, so
@@ -159,8 +159,10 @@ which is why quick-add parsing, recurrence and search have dense unit tests.
   is hooked here via `ref.listen(allTasksProvider|settingsProvider)`.
 - **Board**: `BoardPage` (stateful for the inline-add column) + `KanbanBoardView`
   (generic component, §7.1) + `TaskCard`.
-- **Todos**: filter chips, pinned `QuickAddBar`, grouped sections, `TaskTile`
-  (slidable) and inline `SubtaskTreeRow`s.
+- **Todos**: filter chips, pinned `QuickAddBar`, sections grouped by subject tag
+  (collapsible, long-press to pin) or by due bucket, `TaskTile` (slidable) and
+  inline `SubtaskTreeRow`s. Long-press starts multi-selection: the bottom bar
+  sets one due date, completes/reopens, tags or deletes the selection.
 - **Calendar**: `TableCalendar` (month/2-week/week) + agenda below; markers carry
   event dots (tertiary) and a task dot (secondary); tapping opens editors.
 - **Editors**: modal bottom sheets (`TaskEditorSheet`, `EventEditorSheet`) with
@@ -324,6 +326,23 @@ string through it.
 
 **Why:** retrofitting strings is expensive; taking the enum-based refactor of
 todo buckets (`TodoGroup`) early avoided hardcoded English leaking into logic.
+
+### 12.9 Subject grouping in the todo list
+
+**Decision:** the todo list groups by subject tag by default; due-date buckets
+stay one toolbar tap away. A task with several tags is listed under each of
+them, and untagged tasks form an *Uncategorized* section rendered last.
+
+**Why:** the app is used to track coursework, and "which subject is this?" is
+the first question — much more useful than a single flat date-sorted list. Tags
+already existed, were already colour-coded and were already visible on rows, so
+this reuses them instead of adding a second taxonomy (boards stay for project
+views). Repeating a multi-tag task is intentional: each subject section is a
+complete checklist for that subject.
+
+**Rejected:** grouping by board (boards are heavier and a task belongs to one),
+a dedicated `subjects` table (tags already carry name + colour and are shared
+across boards), and a single "primary subject" field (loses the cross-listing).
 
 ---
 

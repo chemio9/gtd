@@ -732,4 +732,86 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get subtaskEdit => 'Edit subtask';
+
+  @override
+  String get todosGroupBySubject => 'Group by subject';
+
+  @override
+  String get todosGroupByDay => 'Group by due date';
+
+  @override
+  String get todosUncategorized => 'Uncategorized';
+
+  @override
+  String get todosFilterBySubject => 'Show only this subject';
+
+  @override
+  String get todosShowAllSubjects => 'Show all subjects';
+
+  @override
+  String get todosSelectTasks => 'Select tasks';
+
+  @override
+  String todosSelectedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tasks selected',
+      one: '1 task selected',
+      zero: 'No tasks selected',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get todosSelectAll => 'Select all';
+
+  @override
+  String get todosClearSelection => 'Clear';
+
+  @override
+  String get todosBulkToday => 'Today';
+
+  @override
+  String get todosBulkTomorrow => 'Tomorrow';
+
+  @override
+  String get todosBulkPickDate => 'Pick a date';
+
+  @override
+  String get todosBulkClearDate => 'Remove due date';
+
+  @override
+  String get todosBulkComplete => 'Complete';
+
+  @override
+  String get todosBulkReopen => 'Mark incomplete';
+
+  @override
+  String get todosBulkDelete => 'Delete';
+
+  @override
+  String get todosBulkTags => 'Add tags';
+
+  @override
+  String todosBulkUpdated(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Updated $count tasks',
+      one: 'Updated 1 task',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String todosBulkDeleted(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Deleted $count tasks',
+      one: 'Deleted 1 task',
+    );
+    return '$_temp0';
+  }
 }

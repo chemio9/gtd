@@ -1393,6 +1393,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit subtask'**
   String get subtaskEdit;
+
+  /// No description provided for @todosGroupBySubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Group by subject'**
+  String get todosGroupBySubject;
+
+  /// No description provided for @todosGroupByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Group by due date'**
+  String get todosGroupByDay;
+
+  /// No description provided for @todosUncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Uncategorized'**
+  String get todosUncategorized;
+
+  /// No description provided for @todosFilterBySubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Show only this subject'**
+  String get todosFilterBySubject;
+
+  /// No description provided for @todosShowAllSubjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all subjects'**
+  String get todosShowAllSubjects;
+
+  /// No description provided for @todosSelectTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Select tasks'**
+  String get todosSelectTasks;
+
+  /// No description provided for @todosSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No tasks selected} =1{1 task selected} other{{count} tasks selected}}'**
+  String todosSelectedCount(int count);
+
+  /// No description provided for @todosSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get todosSelectAll;
+
+  /// No description provided for @todosClearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get todosClearSelection;
+
+  /// No description provided for @todosBulkToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get todosBulkToday;
+
+  /// No description provided for @todosBulkTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get todosBulkTomorrow;
+
+  /// No description provided for @todosBulkPickDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a date'**
+  String get todosBulkPickDate;
+
+  /// No description provided for @todosBulkClearDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove due date'**
+  String get todosBulkClearDate;
+
+  /// No description provided for @todosBulkComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get todosBulkComplete;
+
+  /// No description provided for @todosBulkReopen.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark incomplete'**
+  String get todosBulkReopen;
+
+  /// No description provided for @todosBulkDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get todosBulkDelete;
+
+  /// No description provided for @todosBulkTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tags'**
+  String get todosBulkTags;
+
+  /// No description provided for @todosBulkUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Updated 1 task} other{Updated {count} tasks}}'**
+  String todosBulkUpdated(int count);
+
+  /// No description provided for @todosBulkDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Deleted 1 task} other{Deleted {count} tasks}}'**
+  String todosBulkDeleted(int count);
 }
 
 class _AppLocalizationsDelegate

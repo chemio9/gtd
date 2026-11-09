@@ -2,7 +2,7 @@
 
 ```bash
 fvm flutter analyze
-fvm flutter test                       # 117 tests, ~25 s
+fvm flutter test                       # 126 tests, ~27 s
 fvm flutter test test/app_flow_test.dart --plain-name "search finds"
 ```
 
@@ -17,11 +17,12 @@ fvm flutter test test/app_flow_test.dart --plain-name "search finds"
 - **Every behavioural change ships with a test.** All 20 commits that touched
   behaviour added or extended tests in the same commit.
 
-## Inventory (13 files)
+## Inventory (14 files)
 
 | File | Focus | Kind |
 |---|---|---|
 | `app_flow_test.dart` | The app end-to-end: create/drag/complete tasks, quick add, paste list, event↔task link, reminders, subtasks/tags, search, calendar markers, settings | widget + real drift |
+| `todos_grouping_test.dart` | Subject grouping, collapse, pinning, grouping switch, batch date/complete/delete/tag | widget + real drift |
 | `widget_test.dart` | `KanbanBoardView` contract (rendering, callbacks) | widget |
 | `quick_parse_test.dart` | Title/date extraction, ISO dates, spans | unit |
 | `recurrence_test.dart` | Occurrence expansion for all frequencies | unit |

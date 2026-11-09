@@ -11,8 +11,14 @@ Simplified Chinese.
   "done" columns that complete tasks automatically, edge auto-scroll while
   dragging. The column "+" opens an inline card field (same Enter-to-continue
   flow, same date parsing) instead of a dialog.
-- **Todos** — one flat list of the same tasks, grouped into Overdue / Today /
-  Tomorrow / Upcoming / Later / Anytime, with filters and swipe-to-delete.
+- **Todos** — the same tasks as the board, grouped **by subject tag** by
+  default: each tag becomes a collapsible section (tap the header) and a task
+  with several tags appears under each one; untagged tasks land in
+  *Uncategorized*. Long-press a header to pin the list to that subject, and the
+  toolbar toggle switches back to due-date grouping (Overdue / Today / Tomorrow
+  / Upcoming / Later / Anytime). Filters narrow by time bucket. Long-press a
+  row to multi-select: the bottom bar sets one due date (today, tomorrow, picker
+  or clear), completes/reopens, adds tags, or deletes with a confirmation.
   Adding is a single inline row (Microsoft To Do style): Enter saves, the field
   clears and stays focused, so a whole list can be typed in a row. The line is
   parsed for dates — `buy milk tomorrow`, `gym fri 9am`, `rent +3d`, `plan

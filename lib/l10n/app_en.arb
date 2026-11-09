@@ -442,5 +442,45 @@
   "reminderBefore1d": "1 day before",
   "reminderNotificationTitle": "Reminder",
   "edit": "Edit",
-  "subtaskEdit": "Edit subtask"
+  "subtaskEdit": "Edit subtask",
+  "todosGroupBySubject": "Group by subject",
+  "todosGroupByDay": "Group by due date",
+  "todosUncategorized": "Uncategorized",
+  "todosFilterBySubject": "Show only this subject",
+  "todosShowAllSubjects": "Show all subjects",
+  "todosSelectTasks": "Select tasks",
+  "todosSelectedCount": "{count, plural, =0{No tasks selected} =1{1 task selected} other{{count} tasks selected}}",
+  "@todosSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todosSelectAll": "Select all",
+  "todosClearSelection": "Clear",
+  "todosBulkToday": "Today",
+  "todosBulkTomorrow": "Tomorrow",
+  "todosBulkPickDate": "Pick a date",
+  "todosBulkClearDate": "Remove due date",
+  "todosBulkComplete": "Complete",
+  "todosBulkReopen": "Mark incomplete",
+  "todosBulkDelete": "Delete",
+  "todosBulkTags": "Add tags",
+  "todosBulkUpdated": "{count, plural, =1{Updated 1 task} other{Updated {count} tasks}}",
+  "@todosBulkUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "todosBulkDeleted": "{count, plural, =1{Deleted 1 task} other{Deleted {count} tasks}}",
+  "@todosBulkDeleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
